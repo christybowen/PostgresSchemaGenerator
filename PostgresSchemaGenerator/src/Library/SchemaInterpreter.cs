@@ -16,21 +16,20 @@ namespace PostgresSchemaGenerator.src.Library
             this.sqlHandle = cmd;
         }
 
-        public void pullView(String viewName)
+        public void pullSchema(String viewName)
         {
-            List<String> output = new List<String>();
+            List<List<String>> output = new List<List<String>>();
             try
             {
-                this.sqlHandle.CommandText = "\\d+ " + viewName;
+                this.sqlHandle.CommandText = "select column_name, data_type, character_maximum_length from INFORMATION_SCHEMA.COLUMNS where table_name = '" + viewName + "'";
                 using (var reader = this.sqlHandle.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        String currentLine = "";
-                        for (int i = 0; i < reader.FieldCount; i++)
-                        {
-                            currentLine += reader.GetString(i) + " ";
-                        }
+                        List<String> currentLine = new List<String>();
+                        currentLine.Add(reader.GetString(0));
+                        currentLine.Add(reader.GetString(1));
+
                         output.Add(currentLine);
                     }
                 }
@@ -39,16 +38,8 @@ namespace PostgresSchemaGenerator.src.Library
             {
                 Console.WriteLine(e.Message);
             }
-        }
 
-        public void pullMaterializedView()
-        {
-
-        }
-
-        public void pullTable()
-        {
-
+            // Do what you need to with the schema that was pulled back.
         }
     }
 }

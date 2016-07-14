@@ -31,7 +31,8 @@ namespace PostgresSchemaGenerator
                     // Here is where the SchemaInterpreter is created.
 
                     SchemaInterpreter schema = new SchemaInterpreter(cmd);
-                    schema.pullView("ap_aging_summary");
+                    schema.pullSchema("rp_v_ppa");
+                    //schema.pullView("ap_aging_summary");
 
                 }
             }
