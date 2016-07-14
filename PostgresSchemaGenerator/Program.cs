@@ -32,6 +32,8 @@ namespace PostgresSchemaGenerator
                     return;
                 }
 
+                List<string> tableNames = new List<string>();
+
                 // Start SQL command
                 using (var cmd = new NpgsqlCommand())
                 {
@@ -42,8 +44,12 @@ namespace PostgresSchemaGenerator
                         SchemaInterpreter schema = new SchemaInterpreter(cmd);
                         
                         schema.pullSchema(resourceList[i]);
+                        schema.createModelString();
+                        schema.saveToFile("C:\\Users\\jason\\Desktop\\");
                     }
                 }
+
+                conn.Close();
             }
             Console.ReadKey();
         }
