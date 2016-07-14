@@ -11,7 +11,7 @@ namespace PostgresSchemaGenerator
     {
         static void Main(string[] args)
         {
-            using (var conn = new NpgsqlConnection("host=sand5;Username=jbennett;Database=payledger"))
+            using (var conn = new NpgsqlConnection("host=sand5;Username=cbowen;Database=payledger"))
             {
                 conn.Open();
 
