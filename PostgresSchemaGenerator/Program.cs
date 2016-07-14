@@ -10,6 +10,14 @@ namespace PostgresSchemaGenerator
 {
     class Program
     {
+        /*
+        * The list of tables/views to generate models for.
+        */
+        static String[] resourceList = new String[] {
+            "rp_v_ppa",
+            "rp_v_ppp"
+        };
+
         static void Main(string[] args)
         {
             using (var conn = new NpgsqlConnection("host=sand5;Username=cbowen;Database=payledger"))
@@ -30,12 +38,15 @@ namespace PostgresSchemaGenerator
                 using (var cmd = new NpgsqlCommand())
                 {
                     cmd.Connection = conn;
-                    // Here is where the SchemaInterpreter is created.
 
-                    SchemaInterpreter schema = new SchemaInterpreter(cmd);
-                    schema.pullSchema("rp_v_ppa");
-                    schema.createModelString();
-                    schema.saveToFile("C:\\Users\\chris\\Desktop\\");
+                    for (int i = 0; i < resourceList.Length; i++)
+                    {
+                        SchemaInterpreter schema = new SchemaInterpreter(cmd);
+                        
+                        schema.pullSchema(resourceList[i]);
+                        schema.createModelString();
+                        schema.saveToFile("C:\\Users\\chris\\Desktop\\");
+                    }
                 }
 
                 conn.Close();
