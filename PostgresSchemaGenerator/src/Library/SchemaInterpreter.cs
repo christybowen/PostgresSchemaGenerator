@@ -85,14 +85,29 @@ namespace PostgresSchemaGenerator.src.Library
         /// </summary>
         public void createModelString()
         {
-            var fileString = "using System;\n\n";
+            var fileString = "using System;\n";
+            fileString += "using System.ComponentModel.DataAnnotations;\n";
+            fileString += "using LinqToDB.Mapping;\n\n";
 
-            fileString += "namespace ActionTargetOData\n{\n";
-            fileString += "public class " + viewName + "\n{\n";
-            fileString += "#region Instance Properties\n";
+            fileString += "namespace ActionTargetOData.Models\n{\n";
+            fileString += "    [Table(Name = \"" + viewName + "\")]\n";
+            fileString += "    public class " + viewName + "\n    {\n";
+            fileString += "        #region Instance Properties\n\n";
 
-            foreach(var col in this.infoSchemaColumns)
+
+            for(int i = 0; i < this.infoSchemaColumns.Count; i++)
             {
+                var col = this.infoSchemaColumns[i];
+
+                if(i == 0)
+                {
+                    fileString += "        [PrimaryKey, Identity]\n";
+                }
+                else
+                {
+                    fileString += "        [Column(Name =\"" + col[0] + "\"), NotNull]\n";
+                }
+
                 var columnType = "";
 
                 switch (col[1])
@@ -168,11 +183,11 @@ namespace PostgresSchemaGenerator.src.Library
                     columnType += "?";
                 }
 
-                fileString += "public " + columnType + " " + col[0] + " { get; set; }\n";
+                fileString += "        public " + columnType + " " + col[0] + " { get; set; }\n\n";
             }
 
-            fileString += "#endregion Instance Properties\n";
-            fileString += "}\n";
+            fileString += "        #endregion Instance Properties\n";
+            fileString += "    }\n";
             fileString += "}\n";
 
             this.printString = fileString;
