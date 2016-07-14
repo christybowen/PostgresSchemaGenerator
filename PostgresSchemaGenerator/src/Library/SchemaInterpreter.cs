@@ -176,8 +176,6 @@ namespace PostgresSchemaGenerator.src.Library
             fileString += "}\n";
 
             this.printString = fileString;
-
-            //Console.WriteLine(fileString);
         }
 
         /// <summary>
