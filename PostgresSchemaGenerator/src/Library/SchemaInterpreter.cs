@@ -72,7 +72,7 @@ namespace PostgresSchemaGenerator.src.Library
         {
             var fileString = "using System;\n\n";
 
-            fileString += "namespace PostgresTables\n{\n";
+            fileString += "namespace ActionTargetOData\n{\n";
             fileString += "public class " + viewName + "\n{\n";
             fileString += "#region Instance Properties\n";
 
@@ -146,7 +146,6 @@ namespace PostgresSchemaGenerator.src.Library
                     default:
                         columnType = "Object";
                         break;
-
                 }
 
                 if (col[2] == "YES" && columnType != "Object" && columnType != "Guid" && columnType != "Byte[]" && columnType != "String")
