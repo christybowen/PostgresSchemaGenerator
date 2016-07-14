@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Net;
 using Npgsql;
+using PostgresSchemaGenerator.src.Library;
 
 namespace PostgresSchemaGenerator
 {
@@ -27,26 +28,11 @@ namespace PostgresSchemaGenerator
                 using (var cmd = new NpgsqlCommand())
                 {
                     cmd.Connection = conn;
-                    cmd.CommandText = "select table_name from INFORMATION_SCHEMA.views where table_schema = ANY (current_schemas(false))";
+                    // Here is where the SchemaInterpreter is created.
 
-                    try
-                    {
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read()) {
-                                for (int i = 0; i < reader.FieldCount; i++) {
-                                    Console.Write(reader.GetString(i) + ' ');
-                                }
-                                Console.WriteLine();
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        System.Diagnostics.Debug.WriteLine(e.Message);
+                    SchemaInterpreter schema = new SchemaInterpreter(cmd);
+                    schema.pullView("ap_aging_summary");
 
-                        return;
-                    }
                 }
             }
             Console.ReadKey();
