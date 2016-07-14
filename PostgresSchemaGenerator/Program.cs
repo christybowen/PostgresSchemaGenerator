@@ -14,8 +14,7 @@ namespace PostgresSchemaGenerator
         * The list of tables/views to generate models for.
         */
         static String[] resourceList = new String[] {
-            "rp_v_ppa",
-            "rp_v_ppp"
+            "mat_work"
         };
 
         static void Main(string[] args)
