@@ -23,6 +23,8 @@ namespace PostgresSchemaGenerator
                     return;
                 }
 
+                List<string> tableNames = new List<string>();
+
                 // Start SQL command
                 using (var cmd = new NpgsqlCommand())
                 {
@@ -35,6 +37,7 @@ namespace PostgresSchemaGenerator
                         {
                             while (reader.Read()) {
                                 for (int i = 0; i < reader.FieldCount; i++) {
+                                    tableNames.Add(reader.GetString(i));
                                     Console.Write(reader.GetString(i) + ' ');
                                 }
                                 Console.WriteLine();
@@ -48,6 +51,38 @@ namespace PostgresSchemaGenerator
                         return;
                     }
                 }
+
+                using (var cmd = new NpgsqlCommand())
+                {
+                    for (int i = 0; i < tableNames.Count; i++)
+                    {
+                        cmd.CommandText = "select column_name from INFORMATION_SCHEMA.columns where table_name = " + tableNames[i];
+
+                        try
+                        {
+                            using (var reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    Console.Write(tableNames[i] + "  columns: ");
+                                    for (int j = 0; j < reader.FieldCount; j++)
+                                    {
+                                        Console.Write(reader.GetString(j) + ' ');
+                                    }
+                                    Console.WriteLine();
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            System.Diagnostics.Debug.WriteLine(e.Message);
+
+                            return;
+                        }
+                    }
+                }
+
+                conn.Close();
             }
             Console.ReadKey();
         }
