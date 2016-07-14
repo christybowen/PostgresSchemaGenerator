@@ -20,7 +20,7 @@ namespace PostgresSchemaGenerator
 
         static void Main(string[] args)
         {
-            using (var conn = new NpgsqlConnection("host=sand5;Username=jbennett;Database=payledger"))
+            using (var conn = new NpgsqlConnection("host=sand5;Username=cbowen;Database=payledger"))
             {
                 conn.Open();
 
@@ -32,6 +32,8 @@ namespace PostgresSchemaGenerator
                     return;
                 }
 
+                List<string> tableNames = new List<string>();
+
                 // Start SQL command
                 using (var cmd = new NpgsqlCommand())
                 {
@@ -42,8 +44,12 @@ namespace PostgresSchemaGenerator
                         SchemaInterpreter schema = new SchemaInterpreter(cmd);
                         
                         schema.pullSchema(resourceList[i]);
+                        schema.createModelString();
+                        schema.saveToFile("C:\\Users\\chris\\Desktop\\");
                     }
                 }
+
+                conn.Close();
             }
             Console.ReadKey();
         }
