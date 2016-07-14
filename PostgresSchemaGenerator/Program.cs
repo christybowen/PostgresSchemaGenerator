@@ -34,39 +34,9 @@ namespace PostgresSchemaGenerator
 
                     SchemaInterpreter schema = new SchemaInterpreter(cmd);
                     schema.pullSchema("rp_v_ppa");
-                    //schema.pullView("ap_aging_summary");
-
+                    schema.createModelString();
+                    schema.saveToFile("C:\\Users\\chris\\Desktop\\");
                 }
-
-               /* using (var cmd = new NpgsqlCommand())
-                {
-                    for (int i = 0; i < tableNames.Count; i++)
-                    {
-                        cmd.CommandText = "select column_name from INFORMATION_SCHEMA.columns where table_name = " + tableNames[i];
-
-                        try
-                        {
-                            using (var reader = cmd.ExecuteReader())
-                            {
-                                while (reader.Read())
-                                {
-                                    Console.Write(tableNames[i] + "  columns: ");
-                                    for (int j = 0; j < reader.FieldCount; j++)
-                                    {
-                                        Console.Write(reader.GetString(j) + ' ');
-                                    }
-                                    Console.WriteLine();
-                                }
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            System.Diagnostics.Debug.WriteLine(e.Message);
-
-                            return;
-                        }
-                    }
-                }*/
 
                 conn.Close();
             }

@@ -10,6 +10,9 @@ namespace PostgresSchemaGenerator.src.Library
     public class SchemaInterpreter
     {
         private NpgsqlCommand sqlHandle;
+        private List<List<String>> infoSchemaColumns;
+        private String printString;
+        private String viewName;
 
         public SchemaInterpreter(NpgsqlCommand cmd)
         {
@@ -21,28 +24,36 @@ namespace PostgresSchemaGenerator.src.Library
             List<List<String>> output = new List<List<String>>();
             try
             {
-
-                this.sqlHandle.CommandText = "select column_name, data_type, character_maximum_length from INFORMATION_SCHEMA.COLUMNS where table_name = '" + viewName + "'";
+                this.sqlHandle.CommandText = "select column_name, data_type, is_nullable from INFORMATION_SCHEMA.COLUMNS where table_name = '" + viewName + "'";
+                this.viewName = viewName;
 
                 using (var reader = this.sqlHandle.ExecuteReader())
                 {
                     while (reader.Read())
                     {
                         List<String> currentLine = new List<String>();
+                        // The column name
                         currentLine.Add(reader.GetString(0));
+
+                        // The data type for the column
                         currentLine.Add(reader.GetString(1));
 
+                        // Whether the column is nullable
+                        currentLine.Add(reader.GetString(2));
+
+                        // This is a List of strings that coorelate to the previous items.
                         output.Add(currentLine);
+
+                        //Console.WriteLine(currentLine[0] + " " + currentLine[1] + " " + currentLine[2]);
                     }
                 }
+
+                this.infoSchemaColumns = output;
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
             }
-
-
-            createModel(viewName, new List<ColumnData>());
         }
 
         public void pullMaterializedView()
@@ -57,19 +68,19 @@ namespace PostgresSchemaGenerator.src.Library
             // Do what you need to with the schema that was pulled back.
         }
 
-        public void createModel(string viewName, List<ColumnData> columns)
+        public void createModelString()
         {
-            var fileString = "using System;\n \n";
+            var fileString = "using System;\n\n";
 
-            fileString += "namespace PostgresTables \n { \n";
-            fileString += "public class " + viewName + "\n { \n";
-            fileString += "#region Instance Properties \n";
+            fileString += "namespace PostgresTables\n{\n";
+            fileString += "public class " + viewName + "\n{\n";
+            fileString += "#region Instance Properties\n";
 
-            foreach(var col in columns)
+            foreach(var col in this.infoSchemaColumns)
             {
                 var columnType = "";
 
-                switch (col.ColumnType)
+                switch (col[1])
                 {
                     case "bigint":
                         columnType = "Int64";
@@ -80,6 +91,7 @@ namespace PostgresSchemaGenerator.src.Library
                         columnType = "Byte[]";
                         break;
                     case "bit":
+                    case "boolean":
                         columnType = "Boolean";
                         break;
                     case "char":
@@ -88,6 +100,8 @@ namespace PostgresSchemaGenerator.src.Library
                     case "nvarchar":
                     case "text":
                     case "varchar":
+                    case "character varying":
+                    case "character":
                         columnType = "String";
                         break;
                     case "date":
@@ -110,9 +124,11 @@ namespace PostgresSchemaGenerator.src.Library
                         columnType = "Single";
                         break;
                     case "int":
+                    case "integer":
                         columnType = "Int32";
                         break;
                     case "real":
+                    case "double precision":
                         columnType = "Double";
                         break;
                     case "smallint":
@@ -133,19 +149,27 @@ namespace PostgresSchemaGenerator.src.Library
 
                 }
 
-                if (col.IsNullable == "YES")
+                if (col[2] == "YES" && columnType != "Object" && columnType != "Guid" && columnType != "Byte[]" && columnType != "String")
                 {
                     columnType += "?";
                 }
 
-                fileString += "public " + columnType + " " + col.ColumnName + " { get; set; } \n";
+                fileString += "public " + columnType + " " + col[0] + " { get; set; }\n";
             }
 
-            fileString += "#endregion Instance Properties \n";
-            fileString += "} \n";
-            fileString += "} \n";
+            fileString += "#endregion Instance Properties\n";
+            fileString += "}\n";
+            fileString += "}\n";
 
-            // feed fileString to the print function
+            this.printString = fileString;
+
+            //Console.WriteLine(fileString);
+        }
+
+        public void saveToFile(String fileFolder)
+        {
+            fileFolder += this.viewName + ".cs";
+            System.IO.File.WriteAllText(fileFolder, this.printString);
         }
     }
 }
