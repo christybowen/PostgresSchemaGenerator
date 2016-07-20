@@ -99,6 +99,9 @@ namespace PostgresSchemaGenerator.src.Library
             fileString += "    public class " + viewName + "\n    {\n";
             fileString += "        #region Instance Properties\n\n";
 
+            List<String> primaryKey = new List<String>();
+
+            string instanceProperties = "";
 
             for(int i = 0; i < this.infoSchemaColumns.Count; i++)
             {
@@ -106,11 +109,11 @@ namespace PostgresSchemaGenerator.src.Library
 
                 if(i == 0)
                 {
-                    fileString += "        [PrimaryKey, Identity]\n";
+                    instanceProperties += "        [PrimaryKey, Identity]\n";
                 }
                 else
                 {
-                    fileString += "        [Column(Name =\"" + col.ColumnName + "\"), NotNull]\n";
+                    instanceProperties += "        [Column(Name =\"" + col.ColumnName + "\"), NotNull]\n";
                 }
 
                 var columnType = "";
@@ -196,12 +199,12 @@ namespace PostgresSchemaGenerator.src.Library
                     case "inet":
                         columnType = "IPAddress";
                         break;
-                    case "array":
-                    case "int2vector":
-                        columnType = "Array";
-                        break;
                     default:
-                        columnType = "Object";
+                        if(exclusionList == null)
+                        {
+                            exclusionList = new List<String>();
+                        }
+                        addToExclusion(col.ColumnName);
                         break;
                 }
 
@@ -210,8 +213,33 @@ namespace PostgresSchemaGenerator.src.Library
                     columnType += "?";
                 }
 
-                fileString += "        public " + columnType + " " + col.ColumnName + " { get; set; }\n\n";
+                instanceProperties += "        public " + columnType + " " + col.ColumnName + " { get; set; }\n\n";
+
+                if(col.PrimaryKey)
+                {
+                    primaryKey.Add(col.ColumnName);
+                }
             }
+
+            fileString += "// ignored columns: ";
+
+            for(int k = 0; k < exclusionList.Count - 1; k++)
+            {
+                fileString += exclusionList[k] + ", ";
+            }
+
+            fileString += exclusionList[exclusionList.Count] + "\n\n";
+
+            fileString += "\n public List<String> primaryKeys = new List<String>() {";
+
+            for(int j = 0; j < primaryKey.Count - 1; j++)
+            {
+                fileString += primaryKey[j] + ", ";
+            }
+
+            fileString += primaryKey[primaryKey.Count] + "};\n\n";
+
+            fileString += instanceProperties;
 
             fileString += "        #endregion Instance Properties\n";
             fileString += "    }\n";
@@ -239,7 +267,7 @@ namespace PostgresSchemaGenerator.src.Library
             for (int i = 0; i < this.infoSchemaColumns.Count(); i++)
             {
                 query += this.infoSchemaColumns.ElementAt(i);
-                if (i >= this.infoSchemaColumns.Count())
+                if (i < this.infoSchemaColumns.Count())
                 {
                     query += ",";
                 }

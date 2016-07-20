@@ -36,8 +36,8 @@
     <Reference Include="linq2db">
       <HintPath>..\packages\linq2db.1.0.7.1\lib\net40\linq2db.dll</HintPath>
     </Reference>
-    <Reference Include="Npgsql, Version=3.1.6.0, Culture=neutral, PublicKeyToken=5d8b90d52f46fda7, processorArchitecture=MSIL">
-      <HintPath>..\..\ActionTargetOData\packages\Npgsql.3.1.6\lib\net451\Npgsql.dll</HintPath>
+    <Reference Include="npgsql, Version=3.1.5.0, Culture=neutral, PublicKeyToken=5d8b90d52f46fda7, processorArchitecture=MSIL">
+      <HintPath>..\packages\npgsql.3.1.5\lib\net451\npgsql.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -52,6 +52,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="src\Library\SchemaEntry.cs" />
     <Compile Include="src\Library\SchemaInterpreter.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -79,6 +80,7 @@
     <None Include="LinqToDB.Templates\T4Model.ttinclude" />
     <None Include="LinqToDB.Templates\Validation.ttinclude" />
     <None Include="packages.config" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="LinqToDB.Templates\CopyMe.PostgreSQL.tt.txt" />
