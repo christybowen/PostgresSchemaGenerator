@@ -16,7 +16,7 @@ namespace PostgresSchemaGenerator.src.Library
         /// The handle to the PostGres connection.
         /// </summary>
         private NpgsqlCommand sqlHandle;
-        private List<List<String>> infoSchemaColumns;
+        private List<SchemaEntry> infoSchemaColumns;
         private String printString;
         private String viewName;
 
@@ -47,25 +47,28 @@ namespace PostgresSchemaGenerator.src.Library
         /// <param name="viewName">The table or view to pull information on.</param>
         public void pullSchema(String viewName)
         {
-            List<List<String>> output = new List<List<String>>();
+            List<SchemaEntry> output = new List<SchemaEntry>();
             try
             {
-                this.sqlHandle.CommandText = "select column_name, data_type, is_nullable from INFORMATION_SCHEMA.COLUMNS where table_name = '" + viewName + "'";
+                this.sqlHandle.CommandText = "select cdt_col, type, is_pkey, nonull from wm.column_data where cdt_tab = '" + viewName + "'";
                 this.viewName = viewName;
 
                 using (var reader = this.sqlHandle.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        List<String> currentLine = new List<String>();
+                        SchemaEntry currentLine = new SchemaEntry();
                         // The column name
-                        currentLine.Add(reader.GetString(0));
+                        currentLine.ColumnName = reader.GetString(0);
 
                         // The data type for the column
-                        currentLine.Add(reader.GetString(1));
+                        currentLine.ColumnType = reader.GetString(1);
+
+                        // Whether the column is a pkey
+                        currentLine.PrimaryKey = reader.GetBoolean(2);
 
                         // Whether the column is nullable
-                        currentLine.Add(reader.GetString(2));
+                        currentLine.Nullable = reader.GetBoolean(3);
 
                         // This is a List of strings that coorelate to the previous items.
                         output.Add(currentLine);
@@ -96,6 +99,9 @@ namespace PostgresSchemaGenerator.src.Library
             fileString += "    public class " + viewName + "\n    {\n";
             fileString += "        #region Instance Properties\n\n";
 
+            List<String> primaryKey = new List<String>();
+
+            string instanceProperties = "";
 
             for(int i = 0; i < this.infoSchemaColumns.Count; i++)
             {
@@ -103,27 +109,30 @@ namespace PostgresSchemaGenerator.src.Library
 
                 if(i == 0)
                 {
-                    fileString += "        [PrimaryKey, Identity]\n";
+                    instanceProperties += "        [PrimaryKey, Identity]\n";
                 }
                 else
                 {
-                    fileString += "        [Column(Name =\"" + col[0] + "\"), NotNull]\n";
+                    instanceProperties += "        [Column(Name =\"" + col.ColumnName + "\"), NotNull]\n";
                 }
 
                 var columnType = "";
 
-                switch (col[1])
+                switch (col.ColumnType)
                 {
                     case "bigint":
+                    case "int8":
                         columnType = "Int64";
                         break;
                     case "binary":
                     case "image":
                     case "varbinary":
+                    case "bytea":
                         columnType = "Byte[]";
                         break;
                     case "bit":
                     case "boolean":
+                    case "bool":
                         columnType = "Boolean";
                         break;
                     case "char":
@@ -134,6 +143,9 @@ namespace PostgresSchemaGenerator.src.Library
                     case "varchar":
                     case "character varying":
                     case "character":
+                    case "audit_type":
+                    case "bpchar":
+                    case "yes_or_no":
                         columnType = "String";
                         break;
                     case "date":
@@ -141,6 +153,8 @@ namespace PostgresSchemaGenerator.src.Library
                     case "datetime2":
                     case "smalldatetime":
                     case "timestamp":
+                    case "timetz":
+                    case "timestamptz":
                         columnType = "DateTime";
                         break;
                     case "datetimeoffset":
@@ -153,19 +167,25 @@ namespace PostgresSchemaGenerator.src.Library
                         columnType = "Decimal";
                         break;
                     case "float":
+                    case "float4":
                         columnType = "Single";
                         break;
                     case "int":
                     case "integer":
+                    case "int4":
+                    case "cardinal":
                         columnType = "Int32";
                         break;
                     case "real":
                     case "double precision":
+                    case "float8":
                         columnType = "Double";
                         break;
                     case "smallint":
+                    case "int2":
                         columnType = "Int16";
                         break;
+                    case "interval":
                     case "time":
                         columnType = "TimeSpan";
                         break;
@@ -173,20 +193,53 @@ namespace PostgresSchemaGenerator.src.Library
                         columnType = "Byte";
                         break;
                     case "uniqueidentifier":
+                    case "uuid":
                         columnType = "Guid";
                         break;
+                    case "inet":
+                        columnType = "IPAddress";
+                        break;
                     default:
-                        columnType = "Object";
+                        if(exclusionList == null)
+                        {
+                            exclusionList = new List<String>();
+                        }
+                        addToExclusion(col.ColumnName);
                         break;
                 }
 
-                if (col[2] == "YES" && columnType != "Object" && columnType != "Guid" && columnType != "Byte[]" && columnType != "String")
+                if (col.Nullable && columnType != "Object" && columnType != "Guid" && columnType != "Byte[]" && columnType != "String")
                 {
                     columnType += "?";
                 }
 
-                fileString += "        public " + columnType + " " + col[0] + " { get; set; }\n\n";
+                instanceProperties += "        public " + columnType + " " + col.ColumnName + " { get; set; }\n\n";
+
+                if(col.PrimaryKey)
+                {
+                    primaryKey.Add(col.ColumnName);
+                }
             }
+
+            fileString += "// ignored columns: ";
+
+            for(int k = 0; k < exclusionList.Count - 1; k++)
+            {
+                fileString += exclusionList[k] + ", ";
+            }
+
+            fileString += exclusionList[exclusionList.Count] + "\n\n";
+
+            fileString += "\n public List<String> primaryKeys = new List<String>() {";
+
+            for(int j = 0; j < primaryKey.Count - 1; j++)
+            {
+                fileString += primaryKey[j] + ", ";
+            }
+
+            fileString += primaryKey[primaryKey.Count] + "};\n\n";
+
+            fileString += instanceProperties;
 
             fileString += "        #endregion Instance Properties\n";
             fileString += "    }\n";
@@ -214,7 +267,7 @@ namespace PostgresSchemaGenerator.src.Library
             for (int i = 0; i < this.infoSchemaColumns.Count(); i++)
             {
                 query += this.infoSchemaColumns.ElementAt(i);
-                if (i >= this.infoSchemaColumns.Count())
+                if (i < this.infoSchemaColumns.Count())
                 {
                     query += ",";
                 }
