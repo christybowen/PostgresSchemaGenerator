@@ -36,9 +36,11 @@ namespace PostgresSchemaGenerator.src.Library
         /// Constructor.
         /// </summary>
         /// <param name="cmd">The connection handle.</param>
-        public SchemaInterpreter(NpgsqlCommand cmd)
+        public SchemaInterpreter(NpgsqlCommand cmd, List<String> exclList, List<SchemaEntry> columns)
         {
             this.sqlHandle = cmd;
+            this.infoSchemaColumns = columns;
+            this.exclusionList = exclList;
         }
 
         /// <summary>
@@ -47,7 +49,6 @@ namespace PostgresSchemaGenerator.src.Library
         /// <param name="viewName">The table or view to pull information on.</param>
         public void pullSchema(String viewName)
         {
-            this.infoSchemaColumns = new List<SchemaEntry>();
             try
             {
                 this.sqlHandle.CommandText = "select cdt_col, type, is_pkey, nonull from wm.column_data where cdt_tab = '" + viewName + "'";
@@ -68,7 +69,11 @@ namespace PostgresSchemaGenerator.src.Library
                         currentLine.PrimaryKey = reader.GetBoolean(2);
 
                         // Whether the column is nullable
-                        currentLine.Nullable = reader.GetBoolean(3);
+                        var isNull = reader.IsDBNull(3);
+                        if (!isNull)
+                        {
+                            currentLine.Nullable = reader.GetBoolean(3);
+                        }
 
                         // This is a List of strings that coorelate to the previous items.
                         this.infoSchemaColumns.Add(currentLine);
@@ -105,15 +110,6 @@ namespace PostgresSchemaGenerator.src.Library
             for(int i = 0; i < this.infoSchemaColumns.Count; i++)
             {
                 var col = this.infoSchemaColumns[i];
-
-                if(i == 0)
-                {
-                    instanceProperties += "        [PrimaryKey, Identity]\n";
-                }
-                else
-                {
-                    instanceProperties += "        [Column(Name =\"" + col.ColumnName + "\"), NotNull]\n";
-                }
 
                 var columnType = "";
 
@@ -212,7 +208,19 @@ namespace PostgresSchemaGenerator.src.Library
                     columnType += "?";
                 }
 
-                instanceProperties += "        public " + columnType + " " + col.ColumnName + " { get; set; }\n\n";
+                if (!exclusionList.Contains(col.ColumnName))
+                {
+                    if (i == 0)
+                    {
+                        instanceProperties += "        [PrimaryKey, Identity]\n";
+                    }
+                    else
+                    {
+                        instanceProperties += "        [Column(Name =\"" + col.ColumnName + "\"), NotNull]\n";
+                    }
+
+                    instanceProperties += "        public " + columnType + " " + col.ColumnName + " { get; set; }\n\n";
+                }
 
                 if(col.PrimaryKey)
                 {
@@ -220,23 +228,26 @@ namespace PostgresSchemaGenerator.src.Library
                 }
             }
 
-            fileString += "// ignored columns: ";
+            fileString += "        // ignored columns: ";
 
             for(int k = 0; k < exclusionList.Count - 1; k++)
             {
                 fileString += exclusionList[k] + ", ";
             }
 
-            fileString += exclusionList[exclusionList.Count] + "\n\n";
+            if (exclusionList.Count > 0)
+            {
+                fileString += exclusionList[exclusionList.Count - 1] + "\n";
+            }
 
-            fileString += "\n public List<String> primaryKeys = new List<String>() {";
+            fileString += "\n        public List<String> primaryKeys = new List<String>() {";
 
             for(int j = 0; j < primaryKey.Count - 1; j++)
             {
-                fileString += primaryKey[j] + ", ";
+                fileString += "\"" + primaryKey[j] + "\", ";
             }
 
-            fileString += primaryKey[primaryKey.Count] + "};\n\n";
+            fileString += "\"" + primaryKey[primaryKey.Count - 1] + "\"};\n\n";
 
             fileString += instanceProperties;
 

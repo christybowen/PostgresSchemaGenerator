@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace PostgresSchemaGenerator.src.Library
 {
-    class SchemaEntry
+    public class SchemaEntry
     {
         public String ColumnName;
 

@@ -40,7 +40,7 @@ namespace PostgresSchemaGenerator
 
                     for (int i = 0; i < resourceList.Length; i++)
                     {
-                        SchemaInterpreter schema = new SchemaInterpreter(cmd);
+                        SchemaInterpreter schema = new SchemaInterpreter(cmd, new List<string>(), new List<SchemaEntry>());
                         
                         schema.pullSchema(resourceList[i]);
                         schema.createModelString();
