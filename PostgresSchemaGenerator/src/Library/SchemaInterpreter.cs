@@ -20,6 +20,8 @@ namespace PostgresSchemaGenerator.src.Library
         private String printString;
         private String viewName;
 
+        private List<String> exclusionList;
+
         /// <summary>
         /// The name of the table to get the schema for.
         /// </summary>
@@ -191,6 +193,36 @@ namespace PostgresSchemaGenerator.src.Library
             fileString += "}\n";
 
             this.printString = fileString;
+        }
+
+        /// <summary>
+        /// Adds a column name to an exclusion list so they don't get pulled when performing queries or parsing data.
+        /// </summary>
+        /// <param name="ColumnName">The name of the column to exclude from queries.</param>
+        private void addToExclusion(String ColumnName)
+        {
+            exclusionList.Add(ColumnName);
+        }
+
+        /// <summary>
+        /// Generates a query for the given table to pull back all entries.
+        /// </summary>
+        public void generateQuery()
+        {
+            String query = "SELECT";
+
+            for (int i = 0; i < this.infoSchemaColumns.Count(); i++)
+            {
+                query += this.infoSchemaColumns.ElementAt(i);
+                if (i >= this.infoSchemaColumns.Count())
+                {
+                    query += ",";
+                }
+                query += " ";
+            }
+
+            query += " FROM ";
+            query += tableName;
         }
 
         /// <summary>
