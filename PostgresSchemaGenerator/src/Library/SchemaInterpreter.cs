@@ -47,7 +47,6 @@ namespace PostgresSchemaGenerator.src.Library
         /// <param name="viewName">The table or view to pull information on.</param>
         public void pullSchema(String viewName)
         {
-            List<SchemaEntry> output = new List<SchemaEntry>();
             try
             {
                 this.sqlHandle.CommandText = "select cdt_col, type, is_pkey, nonull from wm.column_data where cdt_tab = '" + viewName + "'";
@@ -71,17 +70,20 @@ namespace PostgresSchemaGenerator.src.Library
                         currentLine.Nullable = reader.GetBoolean(3);
 
                         // This is a List of strings that coorelate to the previous items.
-                        output.Add(currentLine);
+                        this.infoSchemaColumns.Add(currentLine);
 
                         //Console.WriteLine(currentLine[0] + " " + currentLine[1] + " " + currentLine[2]);
                     }
                 }
 
-                this.infoSchemaColumns = output;
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
+            }
+            if (this.infoSchemaColumns == null)
+            {
+                throw new Exception("No data was returned for this request.");
             }
         }
 
