@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Npgsql;
 using ATShared;
 
@@ -11,7 +10,7 @@ namespace PostgresSchemaGenerator.src.Library
     /// </summary>
     public class SchemaInterpreter : DynamicSchemaInterpreter
     {
-        private String printString;
+        public String printString;
 
         public SchemaInterpreter(NpgsqlCommand cmd, String tableName, List<ATShared.SchemaEntry> exclusionList, List<ATShared.SchemaEntry> schemaCols)
             :base(cmd, tableName, exclusionList, schemaCols)
