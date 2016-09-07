@@ -33,9 +33,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ATShared">
-      <HintPath>..\..\ActionTargetSharedLibrary\ATShared\obj\Debug\ATShared.dll</HintPath>
-    </Reference>
     <Reference Include="linq2db">
       <HintPath>..\packages\linq2db.1.0.7.1\lib\net40\linq2db.dll</HintPath>
     </Reference>
@@ -87,6 +84,12 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="LinqToDB.Templates\CopyMe.PostgreSQL.tt.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\ATShared\ATShared\ATShared.csproj">
+      <Project>{f1764179-064c-4822-9f6a-353e9faee7ab}</Project>
+      <Name>ATShared</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

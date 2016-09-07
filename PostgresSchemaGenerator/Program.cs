@@ -17,7 +17,7 @@ namespace PostgresSchemaGenerator
 
         static void Main(string[] args)
         {
-            using (var conn = new NpgsqlConnection("host=sand6;Username=cbowen;Database=payledger"))
+            using (var conn = new NpgsqlConnection("host=sand5;Username=cbowen;Database=payledger"))
             {
                 Console.WriteLine("Connecting to database");
 
@@ -44,7 +44,9 @@ namespace PostgresSchemaGenerator
 
                         schema.prepareSchema();
                         schema.createModelString();
-                        schema.saveToFile("C:\\Users\\chris\\Desktop\\");
+                        schema.createControllerString();
+                        schema.saveModelToFile("C:\\Users\\chris\\Desktop\\");
+                        schema.saveControllerToFile("C:\\Users\\chris\\Desktop\\");
                     }
                 }
 
