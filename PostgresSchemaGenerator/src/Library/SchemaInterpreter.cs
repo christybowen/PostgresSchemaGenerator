@@ -24,6 +24,7 @@ namespace PostgresSchemaGenerator.src.Library
         public void createModelString()
         {
             var fileString = "using System;\n";
+            fileString += "using System.Collection.Generic;\n";
             fileString += "using System.ComponentModel.DataAnnotations;\n";
             fileString += "using LinqToDB.Mapping;\n\n";
 
