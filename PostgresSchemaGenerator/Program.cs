@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using System.Net;
 using Npgsql;
 using PostgresSchemaGenerator.src.Library;
 
@@ -19,12 +17,14 @@ namespace PostgresSchemaGenerator
 
         static void Main(string[] args)
         {
-            using (var conn = new NpgsqlConnection("host=sand5;Username=cbowen;Database=payledger"))
+            using (var conn = new NpgsqlConnection("host=sand6;Username=cbowen;Database=payledger"))
             {
+                Console.WriteLine("Connecting to database");
+
                 conn.Open();
 
                 // Make sure connection is open
-                System.Diagnostics.Debug.WriteLine(conn.State);
+                Console.WriteLine(conn.State);
                 if (conn.State == ConnectionState.Closed)
                 {
                     System.Diagnostics.Debug.WriteLine("Connection not open");
@@ -40,9 +40,9 @@ namespace PostgresSchemaGenerator
 
                     for (int i = 0; i < resourceList.Length; i++)
                     {
-                        SchemaInterpreter schema = new SchemaInterpreter(cmd);
-                        
-                        schema.pullSchema(resourceList[i]);
+                        SchemaInterpreter schema = new SchemaInterpreter(cmd, resourceList[i], new List<ATShared.SchemaEntry>(), new List<ATShared.SchemaEntry>());
+
+                        schema.prepareSchema();
                         schema.createModelString();
                         schema.saveToFile("C:\\Users\\chris\\Desktop\\");
                     }
