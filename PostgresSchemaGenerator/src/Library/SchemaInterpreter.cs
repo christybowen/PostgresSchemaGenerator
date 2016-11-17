@@ -12,12 +12,14 @@ namespace PostgresSchemaGenerator.src.Library
     {
         public String modelPrintString;
         public String controllerPrintString;
+        public string routesPrintString;
         private string sqlConnString = "host=sand5;Username=cbowen;Database=payledger";
 
         public SchemaInterpreter(NpgsqlCommand cmd, String tableName, List<ATShared.SchemaEntry> exclusionList, List<ATShared.SchemaEntry> schemaCols)
             :base(cmd, tableName, exclusionList, schemaCols)
         {
-
+            this.prepareSchema();
+            this.baseQuery = generateQuery();
         }
 
         /// <summary>
@@ -31,8 +33,8 @@ namespace PostgresSchemaGenerator.src.Library
             fileString += "using LinqToDB.Mapping;\n\n";
 
             fileString += "namespace ActionTargetOData.Models\n{\n";
-            fileString += "    [Table(Name = \"" + viewName + "\")]\n";
-            fileString += "    public class " + viewName + "\n    {\n";
+            fileString += "    [Table(Name = \"" + this.schemaName + "." + viewName + "\")]\n";
+            fileString += "    public class " + this.schemaName + "_" + viewName + "\n    {\n";
             fileString += "        #region Instance Properties\n\n";
 
             List<String> primaryKey = new List<String>();
@@ -82,14 +84,21 @@ namespace PostgresSchemaGenerator.src.Library
                 fileString += exclusionList[exclusionList.Count - 1].ColumnName + "\n";
             }
 
-            fileString += "\n        public List<String> primaryKeys = new List<String>() {";
+            fileString += "\n        public List<String> primaryKeys = new List<String>() { ";
 
             for(int j = 0; j < primaryKey.Count - 1; j++)
             {
                 fileString += "\"" + primaryKey[j] + "\", ";
             }
 
-            fileString += "\"" + primaryKey[primaryKey.Count - 1] + "\"};\n\n";
+            if (primaryKey.Count == 0)
+            {
+                fileString += " };\n\n";
+            }
+            else
+            {
+                fileString += "\"" + primaryKey[primaryKey.Count - 1] + "\" };\n\n";
+            }
 
             fileString += "        public String baseQuery = \"" + baseQuery + "\";\n\n";
 
@@ -128,22 +137,25 @@ namespace PostgresSchemaGenerator.src.Library
 
             controllerPrintString += "namespace ActionTargetOData.Controllers\n{\n";
 
-            controllerPrintString += "    public class " + this.viewName + "Controller : ODataController\n";
+            controllerPrintString += "    public class " + this.schemaName + "_" + this.viewName + "Controller : ODataController\n";
             controllerPrintString += "    {\n";
 
             controllerPrintString += "        private static ODataValidationSettings _validationSettings = new ODataValidationSettings();\n\n";
 
             #region GetAllEntries
 
-            controllerPrintString += "        public IHttpActionResult Get" + this.viewName + "s(ODataQueryOptions<"
-                                    + this.viewName + "> queryOptions)\n";
+            controllerPrintString += "        public IHttpActionResult Get" + this.schemaName + "_" + this.viewName + "s(ODataQueryOptions<"
+                                    + this.schemaName + "_" + this.viewName + "> queryOptions)\n";
             controllerPrintString += "        {\n";
 
-            controllerPrintString += "            List<" + this.viewName + "> modelList = new List<" + this.viewName + ">();\n\n";
+            controllerPrintString += "            List<" + this.schemaName + "_" + this.viewName + "> modelList = new List<" + this.schemaName + "_" + this.viewName + ">();\n\n";
 
             controllerPrintString += "            using (var conn = new NpgsqlConnection(\"" + sqlConnString + "\"))\n";
             controllerPrintString += "            {\n";
-            controllerPrintString += "                conn.Open();\n\n";
+            controllerPrintString += "                try {\n                    conn.Open();\n";
+            controllerPrintString += "                } catch (Exception ex)\n                {\n";
+            controllerPrintString += "                    System.Diagnostics.Debug.WriteLine(\"ERROR::\");\n";
+            controllerPrintString += "                    System.Diagnostics.Debug.Write(ex.Message);\n                }\n\n";
 
             controllerPrintString += "                if (conn.State == ConnectionState.Closed)\n";
             controllerPrintString += "                {\n";
@@ -153,7 +165,7 @@ namespace PostgresSchemaGenerator.src.Library
             controllerPrintString += "                using (var cmd = new NpgsqlCommand())\n";
             controllerPrintString += "                {\n";
             controllerPrintString += "                    cmd.Connection = conn;\n";
-            controllerPrintString += "                    cmd.CommandText = \"SELECT * FROM " + this.viewName + "\";\n\n";
+            controllerPrintString += "                    cmd.CommandText = \"SELECT * FROM " + this.schemaName + "." + this.viewName + "\";\n\n";
 
             controllerPrintString += "                    try {\n";
             controllerPrintString += "                        using (var reader = cmd.ExecuteReader())\n";
@@ -161,7 +173,7 @@ namespace PostgresSchemaGenerator.src.Library
 
             controllerPrintString += "                            while (reader.Read())\n";
             controllerPrintString += "                            {\n";
-            controllerPrintString += "                                " + this.viewName + " temp = new " + this.viewName + "();\n";
+            controllerPrintString += "                                " + this.schemaName + "_" + this.viewName + " temp = new " + this.schemaName + "_" + this.viewName + "();\n";
 
             for (int i = 0; i < this.infoSchemaColumns.Count; i++)
             {
@@ -197,7 +209,7 @@ namespace PostgresSchemaGenerator.src.Library
             controllerPrintString += "                }\n\n";
 
             controllerPrintString += "                conn.Close();\n";
-            controllerPrintString += "                return Ok<IEnumerable<" + this.viewName + ">>(modelList);\n";
+            controllerPrintString += "                return Ok<IEnumerable<" + this.schemaName + "_" + this.viewName + ">>(modelList);\n";
             controllerPrintString += "            }\n";
             controllerPrintString += "        }\n\n"; // end of method
 
@@ -205,16 +217,19 @@ namespace PostgresSchemaGenerator.src.Library
 
             #region GetSpecificEntry
 
-            controllerPrintString += "        public IHttpActionResult Get" + this.viewName + "([FromODataUri] "
+            controllerPrintString += "        public IHttpActionResult Get" + this.schemaName + "_" + this.viewName + "([FromODataUri] "
                                     + this.getType(this.infoSchemaColumns[0].ColumnType) + " key, ODataQueryOptions<"
-                                    + this.viewName + "> queryOptions)\n";
+                                    + this.schemaName + "_" + this.viewName + "> queryOptions)\n";
             controllerPrintString += "        {\n";
 
-            controllerPrintString += "            List<" + this.viewName + "> modelList = new List<" + this.viewName + ">();\n\n";
+            controllerPrintString += "            List<" + this.schemaName + "_" + this.viewName + "> modelList = new List<" + this.schemaName + "_" + this.viewName + ">();\n\n";
 
             controllerPrintString += "            using (var conn = new NpgsqlConnection(\"" + sqlConnString + "\"))\n";
             controllerPrintString += "            {\n";
-            controllerPrintString += "                conn.Open();\n\n";
+            controllerPrintString += "                try {\n                    conn.Open();\n";
+            controllerPrintString += "                } catch (Exception ex)\n                {\n";
+            controllerPrintString += "                    System.Diagnostics.Debug.WriteLine(\"ERROR::\");\n";
+            controllerPrintString += "                    System.Diagnostics.Debug.Write(ex.Message);\n                }\n\n";
 
             controllerPrintString += "                if (conn.State == ConnectionState.Closed)\n";
             controllerPrintString += "                {\n";
@@ -224,7 +239,7 @@ namespace PostgresSchemaGenerator.src.Library
             controllerPrintString += "                using (var cmd = new NpgsqlCommand())\n";
             controllerPrintString += "                {\n";
             controllerPrintString += "                    cmd.Connection = conn;\n";
-            controllerPrintString += "                    cmd.CommandText = \"SELECT * FROM " + this.viewName + " WHERE " 
+            controllerPrintString += "                    cmd.CommandText = \"SELECT * FROM " + this.schemaName + "." + this.viewName + " WHERE " 
                                                             + this.infoSchemaColumns[0].ColumnName + " = \" + key;\n\n";
 
             controllerPrintString += "                    try {\n";
@@ -233,14 +248,29 @@ namespace PostgresSchemaGenerator.src.Library
 
             controllerPrintString += "                            while (reader.Read())\n";
             controllerPrintString += "                            {\n";
-            controllerPrintString += "                                " + this.viewName + " temp = new " + this.viewName + "();\n";
+            controllerPrintString += "                                " + this.schemaName + "_" + this.viewName + " temp = new " + this.schemaName + "_" + this.viewName + "();\n";
 
             for (int i = 0; i < this.infoSchemaColumns.Count; i++)
             {
+                if (i == 0)
+                {
+                    controllerPrintString += "                                var isNull = reader.IsDBNull(" + i + ");\n";
+                }
+                else
+                {
+                    controllerPrintString += "                                isNull = reader.IsDBNull(" + i + ");\n";
+                }
+
+                controllerPrintString += "                                if(!isNull){\n";
+
                 var col = this.infoSchemaColumns[i];
                 var readerVar = getReader(this.getType(col.ColumnType), i);
 
-                controllerPrintString += "                                temp." + col.ColumnName + " = " + readerVar + ";\n";
+                controllerPrintString += "                                    temp." + col.ColumnName + " = " + readerVar + ";\n";
+                controllerPrintString += "                                }\n";
+                controllerPrintString += "                                else {\n";
+                controllerPrintString += "                                    temp." + col.ColumnName + " = null;\n";
+                controllerPrintString += "                                }\n";
             }
 
             controllerPrintString += "                                modelList.Add(temp);\n";
@@ -254,15 +284,11 @@ namespace PostgresSchemaGenerator.src.Library
             controllerPrintString += "                }\n\n";
 
             controllerPrintString += "                conn.Close();\n";
-            controllerPrintString += "                return Ok<IEnumerable<" + this.viewName + ">>(modelList);\n";
+            controllerPrintString += "                return Ok<IEnumerable<" + this.schemaName + "_" + this.viewName + ">>(modelList);\n";
             controllerPrintString += "            }\n";
             controllerPrintString += "        }\n\n"; // end of method
 
             #endregion GetSpecificEntry
-
-
-
-
 
             controllerPrintString += "    }\n}\n"; // end of controller class and namespace
         }
@@ -273,7 +299,7 @@ namespace PostgresSchemaGenerator.src.Library
         /// <param name="fileFolder">The file location.</param>
         public void saveModelToFile(String fileFolder)
         {
-            fileFolder += this.viewName + ".cs";
+            fileFolder += this.schemaName + "_" + this.viewName + ".cs";
             System.IO.File.WriteAllText(fileFolder, this.modelPrintString);
         }
 
@@ -283,8 +309,39 @@ namespace PostgresSchemaGenerator.src.Library
         /// <param name="fileFolder">The file location.</param>
         public void saveControllerToFile(String fileFolder)
         {
-            fileFolder += this.viewName + "Controller.cs";
+            fileFolder += this.schemaName + "_" + this.viewName + "Controller.cs";
             System.IO.File.WriteAllText(fileFolder, this.controllerPrintString);
+        }
+
+        /// <summary>
+        /// Creates the Routes code based on the created model
+        /// </summary>
+        public void GetRoutesString()
+        {
+            routesPrintString = "            // view-start: " + this.viewName + "\n\n"
+                + "            EntityTypeConfiguration<" + this.schemaName + "_" + this.viewName + "> "
+                + this.schemaName + "_" + this.viewName + "Type = builder.EntityType<" + this.schemaName + "_" + this.viewName + ">();\n";
+
+            bool havePrimaryKey = false;
+
+            for (int i = 0; i < this.infoSchemaColumns.Count; i++)
+            {
+                var col = this.infoSchemaColumns[i];
+
+                if (!havePrimaryKey && col.PrimaryKey)
+                {
+                    routesPrintString += "            " + this.schemaName + "_" + this.viewName + "Type.HasKey(a => a." + col.ColumnName + ");\n";
+
+                    havePrimaryKey = true;
+                }
+                else
+                {
+                    routesPrintString += "            " + this.schemaName + "_" + this.viewName + "Type.Property(a => a." + col.ColumnName + ");\n";
+                }
+            }
+
+            routesPrintString += "            builder.EntitySet<" + this.schemaName + "_" + this.viewName + ">(\"" + this.schemaName + "_" + this.viewName + "\");\n\n";
+            routesPrintString += "            // view-end: " + this.viewName + "\n\n";
         }
 
         private String getReader(String typeOf, int indexNum)

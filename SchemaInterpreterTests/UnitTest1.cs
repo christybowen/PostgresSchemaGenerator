@@ -6,6 +6,7 @@ using PostgresSchemaGenerator.src.Library;
 using ATShared;
 using System.Collections.Generic;
 using Npgsql;
+using System.Text.RegularExpressions;
 
 namespace SchemaInterpreterTests
 {
@@ -99,13 +100,11 @@ namespace SchemaInterpreterTests
 
             var cmd = new NpgsqlCommand();
 
-            Mock<SchemaInterpreter> interpreter = new Mock<SchemaInterpreter>(cmd, "mat_work", excludedList, includedList);
-
-            var mockInterpreter = interpreter.Object;
+            SchemaInterpreter mockInterpreter = new SchemaInterpreter(cmd, "mat_work", excludedList, includedList);
 
             var baseQuery = mockInterpreter.generateQuery();
 
-            Assert.AreEqual("SELECT oper, seq, display, descr FROM mat_work", baseQuery);
+            Assert.AreEqual("SELECT oper, seq, display, descr FROM public.mat_work", baseQuery);
         }
 
         [TestMethod]
@@ -115,24 +114,143 @@ namespace SchemaInterpreterTests
             List<ATShared.SchemaEntry> excludedList = GetExcluded();
             var cmd = new NpgsqlCommand();
 
-            Mock<SchemaInterpreter> interpreter = new Mock<SchemaInterpreter>(cmd, "mat_work", excludedList, includedList);
-
-            var mockInterpreter = interpreter.Object;
+            SchemaInterpreter mockInterpreter = new SchemaInterpreter(cmd, "mat_work", excludedList, includedList);
 
             mockInterpreter.createModelString();
 
-            var printString = "using System;\nusing System.ComponentModel.DataAnnotations;\nusing LinqToDB.Mapping;\n\n"
-                            + "namespace ActionTargetOData.Models\n{    [Table(Name = \"mat_work\")]"
-                            + "    public class mat_work\n    {\n    #region Instance Properties\n\n"
-                            + "        // ignored columns: xmin, tableoid, ctid, oid, cmax, xmax, cmin\n\n"
+            var printString = "using System;\nusing System.Collections.Generic;\n"
+                            + "using System.ComponentModel.DataAnnotations;\nusing LinqToDB.Mapping;\n\n"
+                            + "namespace ActionTargetOData.Models\n{\n    [Table(Name = \"public.mat_work\")]\n"
+                            + "    public class public_mat_work\n    {\n        #region Instance Properties\n\n"
+                            + "        // ignored columns: xmin, tableoid, ctid, oid\n\n"
                             + "        public List<String> primaryKeys = new List<String>() { \"oper\", \"seq\" };\n\n"
-                            + "         [PrimaryKey, Identity]\n        public String oper { get; set; }\n\n"
-                            + "        [Column(Name = \"seq\"), NotNull]\n        public Int32? seq { get; set; }\n\n"
-                            + "        [Column(Name = \"display\"), NotNull]\n        public String display { get; set; }\n\n"
-                            + "        [Column(Name = \"descr\"), NotNull]\n        public String descr { get; set; }\n\n"
+                            + "        public String baseQuery = \"SELECT oper, seq, display, descr FROM public.mat_work\";\n\n"
+                            + "        [PrimaryKey, Identity]\n        public String oper { get; set; }\n\n"
+                            + "        [Column(Name =\"seq\"), NotNull]\n        public Int32? seq { get; set; }\n\n"
+                            + "        [Column(Name =\"display\"), NotNull]\n        public String display { get; set; }\n\n"
+                            + "        [Column(Name =\"descr\"), NotNull]\n        public String descr { get; set; }\n\n"
                             + "        #endregion Instance Properties\n    }\n}\n";
 
-            Assert.AreEqual(printString, mockInterpreter.printString);
+            Assert.AreEqual(printString, mockInterpreter.modelPrintString);
+        }
+
+        [TestMethod]
+        public void CreateControllerStringTest()
+        {
+            List<ATShared.SchemaEntry> includedList = GetIncluded();
+            List<ATShared.SchemaEntry> excludedList = GetExcluded();
+            var cmd = new NpgsqlCommand();
+
+            SchemaInterpreter mockInterpreter = new SchemaInterpreter(cmd, "mat_work", excludedList, includedList);
+
+            mockInterpreter.createControllerString();
+
+            var printString = "using System;\nusing System.Collections.Generic;\nusing System.Data;\n"
+                + "using System.Linq;\nusing System.Net;\nusing System.Net.Http;\nusing System.Web.Http;\n"
+                + "using System.Web.ModelBinding;\nusing System.Web.OData;\nusing System.Web.OData.Query;\n"
+                + "using System.Web.OData.Routing;\nusing ActionTargetOData.Models;\nusing Microsoft.OData.Core;\nusing Npgsql;\n\n"
+                + "namespace ActionTargetOData.Controllers\n{\n    public class public_mat_workController : ODataController\n"
+                + "    {\n        private static ODataValidationSettings _validationSettings = new ODataValidationSettings();\n\n"
+                + "        public IHttpActionResult Getpublic_mat_works(ODataQueryOptions<public_mat_work> queryOptions)\n"
+                + "        {\n            List<public_mat_work> modelList = new List<public_mat_work>();\n\n"
+                + "            using (var conn = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
+                + "            {\n                try {\n                    conn.Open();\n"
+                + "                } catch (Exception ex)\n                {\n"
+                + "                    System.Diagnostics.Debug.WriteLine(\"ERROR::\");\n"
+                + "                    System.Diagnostics.Debug.Write(ex.Message);\n                }\n\n"
+                + "                if (conn.State == ConnectionState.Closed)\n                {\n"
+                + "                    return StatusCode(HttpStatusCode.InternalServerError);\n                }\n\n"
+                + "                using (var cmd = new NpgsqlCommand())\n                {\n"
+                + "                    cmd.Connection = conn;\n                    cmd.CommandText = \"SELECT * FROM public.mat_work\";\n\n"
+                + "                    try {\n                        using (var reader = cmd.ExecuteReader())\n"
+                + "                        {\n                            while (reader.Read())\n                            {\n"
+                + "                                public_mat_work temp = new public_mat_work();\n"
+                + "                                var isNull = reader.IsDBNull(0);\n                                if(!isNull){\n"
+                + "                                    temp.oper = reader.GetString(0);\n"
+                + "                                }\n                                else {\n"
+                + "                                    temp.oper = null;\n                                }\n"
+                + "                                isNull = reader.IsDBNull(1);\n                                if(!isNull){\n"
+                + "                                    temp.seq = reader.GetInt32(1);\n"
+                + "                                }\n                                else {\n"
+                + "                                    temp.seq = null;\n                                }\n"
+                + "                                isNull = reader.IsDBNull(2);\n                                if(!isNull){\n"
+                + "                                    temp.display = reader.GetString(2);\n"
+                + "                                }\n                                else {\n"
+                + "                                    temp.display = null;\n                                }\n"
+                + "                                isNull = reader.IsDBNull(3);\n                                if(!isNull){\n"
+                + "                                    temp.descr = reader.GetString(3);\n"
+                + "                                }\n                                else {\n"
+                + "                                    temp.descr = null;\n                                }\n"
+                + "                                modelList.Add(temp);\n                            }\n"
+                + "                        }\n                    } catch (Exception e)\n"
+                + "                    {\n                        System.Diagnostics.Debug.WriteLine(e.Message);\n\n"
+                + "                        return StatusCode(HttpStatusCode.InternalServerError);\n                   }\n"
+                + "                }\n\n                conn.Close();\n"
+                + "                return Ok<IEnumerable<public_mat_work>>(modelList);\n            }\n        }\n\n"
+                + "        public IHttpActionResult Getpublic_mat_work([FromODataUri] String key, ODataQueryOptions<public_mat_work> queryOptions)\n"
+                + "        {\n            List<public_mat_work> modelList = new List<public_mat_work>();\n\n"
+                + "            using (var conn = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
+                + "            {\n                try {\n                    conn.Open();\n                } catch (Exception ex)\n"
+                + "                {\n                    System.Diagnostics.Debug.WriteLine(\"ERROR::\");\n"
+                + "                    System.Diagnostics.Debug.Write(ex.Message);\n                }\n\n"
+                + "                if (conn.State == ConnectionState.Closed)\n                {\n"
+                + "                    return StatusCode(HttpStatusCode.InternalServerError);\n                }\n\n"
+                + "                using (var cmd = new NpgsqlCommand())\n                {\n                    cmd.Connection = conn;\n"
+                + "                    cmd.CommandText = \"SELECT * FROM public.mat_work WHERE oper = \" + key;\n\n"
+                + "                    try {\n                        using (var reader = cmd.ExecuteReader())\n"
+                + "                        {\n                            while (reader.Read())\n                            {\n"
+                + "                                public_mat_work temp = new public_mat_work();\n"
+                + "                                var isNull = reader.IsDBNull(0);\n                                if(!isNull){\n"
+                + "                                    temp.oper = reader.GetString(0);\n"
+                + "                                }\n                                else {\n"
+                + "                                    temp.oper = null;\n                                }\n"
+                + "                                isNull = reader.IsDBNull(1);\n                                if(!isNull){\n"
+                + "                                    temp.seq = reader.GetInt32(1);\n"
+                + "                                }\n                                else {\n"
+                + "                                    temp.seq = null;\n                                }\n"
+                + "                                isNull = reader.IsDBNull(2);\n                                if(!isNull){\n"
+                + "                                    temp.display = reader.GetString(2);\n"
+                + "                                }\n                                else {\n"
+                + "                                    temp.display = null;\n                                }\n"
+                + "                                isNull = reader.IsDBNull(3);\n                                if(!isNull){\n"
+                + "                                    temp.descr = reader.GetString(3);\n"
+                + "                                }\n                                else {\n"
+                + "                                    temp.descr = null;\n                                }\n"
+                + "                                modelList.Add(temp);\n                            }\n"
+                + "                        }\n                    } catch (Exception e)\n"
+                + "                    {\n                        System.Diagnostics.Debug.WriteLine(e.Message);\n\n"
+                + "                        return StatusCode(HttpStatusCode.InternalServerError);\n                    }\n"
+                + "                }\n\n                conn.Close();\n                return Ok<IEnumerable<public_mat_work>>(modelList);\n"
+                + "            }\n        }\n\n    }\n}\n";
+
+            var nowhiteSpace = Regex.Replace(printString, @"\s+", "");
+            var interpreterNoWhiteSpace = Regex.Replace(mockInterpreter.controllerPrintString, @"\s+", "");
+
+            Assert.AreEqual(nowhiteSpace, interpreterNoWhiteSpace);
+        }
+
+
+        [TestMethod]
+        public void CreateRouteStringTest()
+        {
+            List<ATShared.SchemaEntry> includedList = GetIncluded();
+            List<ATShared.SchemaEntry> excludedList = GetExcluded();
+            var cmd = new NpgsqlCommand();
+
+            SchemaInterpreter mockInterpreter = new SchemaInterpreter(cmd, "mat_work", excludedList, includedList);
+
+            mockInterpreter.GetRoutesString();
+
+            var printString = "            // view-start: mat_work\n\n"
+                + "            EntityTypeConfiguration<public_mat_work> public_mat_workType = builder.EntityType<public_mat_work>();\n"
+                + "            public_mat_workType.HasKey(a => a.oper);\n"
+                + "            public_mat_workType.Property(a => a.seq);\n"
+                + "            public_mat_workType.Property(a => a.display);\n"
+                + "            public_mat_workType.Property(a => a.descr);\n"
+                + "            builder.EntitySet<public_mat_work>(\"public_mat_work\");\n\n"
+                + "            // view-end: mat_work\n\n";
+
+            Assert.AreEqual(printString, mockInterpreter.routesPrintString);
         }
     }
 }
