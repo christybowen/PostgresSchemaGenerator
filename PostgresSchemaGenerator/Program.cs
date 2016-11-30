@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using Npgsql;
 using PostgresSchemaGenerator.src.Library;
+using System.Configuration;
 
 namespace PostgresSchemaGenerator
 {
@@ -17,7 +18,11 @@ namespace PostgresSchemaGenerator
 
         static void Main(string[] args)
         {
-            using (var conn = new NpgsqlConnection("host=sand6;Username=cbowen;Database=ledger"))
+            ConnectionStringSettingsCollection settings = ConfigurationManager.ConnectionStrings;
+            string hostName = settings["sqlHost"].ConnectionString;
+            string dbName = settings["sqlDb"].ConnectionString;
+                
+            using (var conn = new NpgsqlConnection("host=" + hostName + ";Username=" + "cbowen" + ";Database=" + dbName))
             {
                 Console.WriteLine("Connecting to database");
 
