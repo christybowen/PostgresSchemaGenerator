@@ -169,105 +169,74 @@ namespace PostgresSchemaGenerator.src.Library
 
             controllerPrintString += "        public IHttpActionResult Get" + this.schemaName + "_" + this.viewName + "s(ODataQueryOptions<"
                                     + this.schemaName + "_" + this.viewName + "> queryOptions)\n";
-            controllerPrintString += "        {\n";
-
-            controllerPrintString += "            List<" + this.schemaName + "_" + this.viewName + "> modelList = new List<" + this.schemaName + "_" + this.viewName + ">();\n\n";
-
-            controllerPrintString += "            using (var conn = new NpgsqlConnection(\"" + sqlConnString + "\"))\n";
-            controllerPrintString += "            {\n";
-            controllerPrintString += "                try {\n                    conn.Open();\n";
-            controllerPrintString += "                } catch (Exception ex)\n                {\n";
-            controllerPrintString += "                    System.Diagnostics.Debug.WriteLine(\"ERROR::\");\n";
-            controllerPrintString += "                    System.Diagnostics.Debug.Write(ex.Message);\n                }\n\n";
-
-            controllerPrintString += "                if (conn.State == ConnectionState.Closed)\n";
-            controllerPrintString += "                {\n";
-            controllerPrintString += "                    return StatusCode(HttpStatusCode.InternalServerError);\n";
-            controllerPrintString += "                }\n\n";
-
-            controllerPrintString += "                using (var cmd = new NpgsqlCommand())\n";
-            controllerPrintString += "                {\n";
-            controllerPrintString += "                    cmd.Connection = conn;\n";
-            controllerPrintString += "                    cmd.CommandText = \"SELECT * FROM " + this.schemaName + "." + this.viewName + "\";\n\n";
-
-            controllerPrintString += "                    try {\n";
-            controllerPrintString += "                        using (var reader = cmd.ExecuteReader())\n";
-            controllerPrintString += "                        {\n";
-
-            controllerPrintString += "                            while (reader.Read())\n";
-            controllerPrintString += "                            {\n";
-            controllerPrintString += "                                " + this.schemaName + "_" + this.viewName + " temp = new " + this.schemaName + "_" + this.viewName + "(reader);\n";
-
-            controllerPrintString += "                                modelList.Add(temp);\n";
-            controllerPrintString += "                            }\n";
-            controllerPrintString += "                        }\n";
-            controllerPrintString += "                    } catch (Exception e)\n";
-            controllerPrintString += "                    {\n";
-            controllerPrintString += "                        System.Diagnostics.Debug.WriteLine(e.Message);\n\n";
-            controllerPrintString += "                        return StatusCode(HttpStatusCode.InternalServerError);\n";
-            controllerPrintString += "                    }\n";
-            controllerPrintString += "                }\n\n";
-
-            controllerPrintString += "                conn.Close();\n";
-            controllerPrintString += "                return Ok<IEnumerable<" + this.schemaName + "_" + this.viewName + ">>(modelList);\n";
-            controllerPrintString += "            }\n";
-            controllerPrintString += "        }\n\n"; // end of method
+            controllerPrintString += GetEntryString("\"SELECT * FROM " + this.schemaName + "." + this.viewName + "\";");
 
             #endregion GetAllEntries
 
             #region GetSpecificEntry
 
             controllerPrintString += "        public IHttpActionResult Get" + this.schemaName + "_" + this.viewName + "([FromODataUri] "
-                                    + this.getType(this.infoSchemaColumns[0].ColumnType) + " key, ODataQueryOptions<"
-                                    + this.schemaName + "_" + this.viewName + "> queryOptions)\n";
-            controllerPrintString += "        {\n";
+                        + this.getType(this.infoSchemaColumns[0].ColumnType) + " key, ODataQueryOptions<"
+                        + this.schemaName + "_" + this.viewName + "> queryOptions)\n";
 
-            controllerPrintString += "            List<" + this.schemaName + "_" + this.viewName + "> modelList = new List<" + this.schemaName + "_" + this.viewName + ">();\n\n";
-
-            controllerPrintString += "            using (var conn = new NpgsqlConnection(\"" + sqlConnString + "\"))\n";
-            controllerPrintString += "            {\n";
-            controllerPrintString += "                try {\n                    conn.Open();\n";
-            controllerPrintString += "                } catch (Exception ex)\n                {\n";
-            controllerPrintString += "                    System.Diagnostics.Debug.WriteLine(\"ERROR::\");\n";
-            controllerPrintString += "                    System.Diagnostics.Debug.Write(ex.Message);\n                }\n\n";
-
-            controllerPrintString += "                if (conn.State == ConnectionState.Closed)\n";
-            controllerPrintString += "                {\n";
-            controllerPrintString += "                    return StatusCode(HttpStatusCode.InternalServerError);\n";
-            controllerPrintString += "                }\n\n";
-
-            controllerPrintString += "                using (var cmd = new NpgsqlCommand())\n";
-            controllerPrintString += "                {\n";
-            controllerPrintString += "                    cmd.Connection = conn;\n";
-            controllerPrintString += "                    cmd.CommandText = \"SELECT * FROM " + this.schemaName + "." + this.viewName + " WHERE " 
-                                                            + this.infoSchemaColumns[0].ColumnName + " = \" + key;\n\n";
-
-            controllerPrintString += "                    try {\n";
-            controllerPrintString += "                        using (var reader = cmd.ExecuteReader())\n";
-            controllerPrintString += "                        {\n";
-
-            controllerPrintString += "                            while (reader.Read())\n";
-            controllerPrintString += "                            {\n";
-            controllerPrintString += "                                " + this.schemaName + "_" + this.viewName + " temp = new " + this.schemaName + "_" + this.viewName + "(reader);\n";
-
-            controllerPrintString += "                                modelList.Add(temp);\n";
-            controllerPrintString += "                            }\n";
-            controllerPrintString += "                        }\n";
-            controllerPrintString += "                    } catch (Exception e)\n";
-            controllerPrintString += "                    {\n";
-            controllerPrintString += "                        System.Diagnostics.Debug.WriteLine(e.Message);\n\n";
-            controllerPrintString += "                        return StatusCode(HttpStatusCode.InternalServerError);\n";
-            controllerPrintString += "                    }\n";
-            controllerPrintString += "                }\n\n";
-
-            controllerPrintString += "                conn.Close();\n";
-            controllerPrintString += "                return Ok<IEnumerable<" + this.schemaName + "_" + this.viewName + ">>(modelList);\n";
-            controllerPrintString += "            }\n";
-            controllerPrintString += "        }\n\n"; // end of method
+            controllerPrintString += GetEntryString("\"SELECT * FROM " + this.schemaName + "." + this.viewName + " WHERE "
+                                                            + this.infoSchemaColumns[0].ColumnName + " = \" + key;");
 
             #endregion GetSpecificEntry
 
             controllerPrintString += "    }\n}\n"; // end of controller class and namespace
+        }
+
+        private string GetEntryString(string command)
+        {
+            string text = "";
+
+            text += "        {\n";
+
+            text += "            List<" + this.schemaName + "_" + this.viewName + "> modelList = new List<" 
+                + this.schemaName + "_" + this.viewName + ">();\n\n";
+
+            text += "            using (var conn = new NpgsqlConnection(\"" + sqlConnString + "\"))\n";
+            text += "            {\n";
+            text += "                try {\n                    conn.Open();\n";
+            text += "                } catch (Exception ex)\n                {\n";
+            text += "                    System.Diagnostics.Debug.WriteLine(\"ERROR::\");\n";
+            text += "                    System.Diagnostics.Debug.Write(ex.Message);\n                }\n\n";
+
+            text += "                if (conn.State == ConnectionState.Closed)\n";
+            text += "                {\n";
+            text += "                    return StatusCode(HttpStatusCode.InternalServerError);\n";
+            text += "                }\n\n";
+
+            text += "                using (var cmd = new NpgsqlCommand())\n";
+            text += "                {\n";
+            text += "                    cmd.Connection = conn;\n";
+            text += "                    cmd.CommandText = " + command + "\n\n";
+
+            text += "                    try {\n";
+            text += "                        using (var reader = cmd.ExecuteReader())\n";
+            text += "                        {\n";
+
+            text += "                            while (reader.Read())\n";
+            text += "                            {\n";
+            text += "                                " + this.schemaName + "_" + this.viewName + " temp = new " + this.schemaName + "_" + this.viewName + "(reader);\n";
+
+            text += "                                modelList.Add(temp);\n";
+            text += "                            }\n";
+            text += "                        }\n";
+            text += "                    } catch (Exception e)\n";
+            text += "                    {\n";
+            text += "                        System.Diagnostics.Debug.WriteLine(e.Message);\n\n";
+            text += "                        return StatusCode(HttpStatusCode.InternalServerError);\n";
+            text += "                    }\n";
+            text += "                }\n\n";
+
+            text += "                conn.Close();\n";
+            text += "                return Ok<IEnumerable<" + this.schemaName + "_" + this.viewName + ">>(modelList);\n";
+            text += "            }\n";
+            text += "        }\n\n"; // end of method
+
+            return text;
         }
 
         /// <summary>
