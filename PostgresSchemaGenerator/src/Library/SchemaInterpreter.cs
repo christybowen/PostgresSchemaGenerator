@@ -30,7 +30,8 @@ namespace PostgresSchemaGenerator.src.Library
             var fileString = "using System;\n";
             fileString += "using System.Collections.Generic;\n";
             fileString += "using System.ComponentModel.DataAnnotations;\n";
-            fileString += "using LinqToDB.Mapping;\n\n";
+            fileString += "using LinqToDB.Mapping;\n";
+            fileString += "using System.Data.Common;\n\n";
 
             fileString += "namespace ActionTargetOData.Models\n{\n";
             fileString += "    [Table(Name = \"" + this.schemaName + "." + viewName + "\")]\n";
@@ -40,6 +41,7 @@ namespace PostgresSchemaGenerator.src.Library
             List<String> primaryKey = new List<String>();
 
             string instanceProperties = "";
+            string readerSwitch = "";
             bool havePrimaryKey = false;
 
             for(int i = 0; i < this.infoSchemaColumns.Count; i++)
@@ -66,7 +68,13 @@ namespace PostgresSchemaGenerator.src.Library
 
                 instanceProperties += "        public " + columnType + " " + col.ColumnName + " { get; set; }\n\n";
 
-                if(col.PrimaryKey)
+                var readerVar = getReader(this.getType(col.ColumnType), i);
+
+                readerSwitch += "                    case " + i + ":\n";
+                readerSwitch += "                        this." + col.ColumnName + " = isNull ? " + readerVar + ";\n";
+                readerSwitch += "                        break;\n";
+
+                if (col.PrimaryKey)
                 {
                     primaryKey.Add(col.ColumnName);
                 }
@@ -104,7 +112,22 @@ namespace PostgresSchemaGenerator.src.Library
 
             fileString += instanceProperties;
 
-            fileString += "        #endregion Instance Properties\n";
+            fileString += "        #endregion Instance Properties\n\n";
+            fileString += "        #region Methods\n\n";
+            fileString += "        public " + this.schemaName + "_" + viewName + "() {}\n\n";
+            fileString += "        public " + this.schemaName + "_" + viewName + "(DbDataReader reader)\n";
+            fileString += "        {\n";
+            fileString += "            for(int i = 0; i < reader.FieldCount; i++)\n";
+            fileString += "            {\n";
+            fileString += "                var isNull = reader.IsDBNull(i);\n\n";
+            fileString += "                switch(i)\n                {\n";
+
+            fileString += readerSwitch;
+            fileString += "                }\n";
+            fileString += "            }\n";
+            fileString += "        }\n\n";
+            fileString += "        #endregion Methods\n\n";
+
             fileString += "    }\n";
             fileString += "}\n";
 
@@ -173,30 +196,7 @@ namespace PostgresSchemaGenerator.src.Library
 
             controllerPrintString += "                            while (reader.Read())\n";
             controllerPrintString += "                            {\n";
-            controllerPrintString += "                                " + this.schemaName + "_" + this.viewName + " temp = new " + this.schemaName + "_" + this.viewName + "();\n";
-
-            for (int i = 0; i < this.infoSchemaColumns.Count; i++)
-            {
-                if(i == 0)
-                {
-                    controllerPrintString += "                                var isNull = reader.IsDBNull(" + i + ");\n";
-                }
-                else
-                {
-                    controllerPrintString += "                                isNull = reader.IsDBNull(" + i + ");\n";
-                }
-
-                controllerPrintString += "                                if(!isNull){\n";
-
-                var col = this.infoSchemaColumns[i];
-                var readerVar = getReader(this.getType(col.ColumnType), i);
-
-                controllerPrintString += "                                    temp." + col.ColumnName + " = " + readerVar + ";\n";
-                controllerPrintString += "                                }\n";
-                controllerPrintString += "                                else {\n";
-                controllerPrintString += "                                    temp." + col.ColumnName + " = null;\n";
-                controllerPrintString += "                                }\n";
-            }
+            controllerPrintString += "                                " + this.schemaName + "_" + this.viewName + " temp = new " + this.schemaName + "_" + this.viewName + "(reader);\n";
 
             controllerPrintString += "                                modelList.Add(temp);\n";
             controllerPrintString += "                            }\n";
@@ -248,30 +248,7 @@ namespace PostgresSchemaGenerator.src.Library
 
             controllerPrintString += "                            while (reader.Read())\n";
             controllerPrintString += "                            {\n";
-            controllerPrintString += "                                " + this.schemaName + "_" + this.viewName + " temp = new " + this.schemaName + "_" + this.viewName + "();\n";
-
-            for (int i = 0; i < this.infoSchemaColumns.Count; i++)
-            {
-                if (i == 0)
-                {
-                    controllerPrintString += "                                var isNull = reader.IsDBNull(" + i + ");\n";
-                }
-                else
-                {
-                    controllerPrintString += "                                isNull = reader.IsDBNull(" + i + ");\n";
-                }
-
-                controllerPrintString += "                                if(!isNull){\n";
-
-                var col = this.infoSchemaColumns[i];
-                var readerVar = getReader(this.getType(col.ColumnType), i);
-
-                controllerPrintString += "                                    temp." + col.ColumnName + " = " + readerVar + ";\n";
-                controllerPrintString += "                                }\n";
-                controllerPrintString += "                                else {\n";
-                controllerPrintString += "                                    temp." + col.ColumnName + " = null;\n";
-                controllerPrintString += "                                }\n";
-            }
+            controllerPrintString += "                                " + this.schemaName + "_" + this.viewName + " temp = new " + this.schemaName + "_" + this.viewName + "(reader);\n";
 
             controllerPrintString += "                                modelList.Add(temp);\n";
             controllerPrintString += "                            }\n";
@@ -350,33 +327,33 @@ namespace PostgresSchemaGenerator.src.Library
             switch (typeOf)
             {
                 case "Int64":
-                    return "reader.GetInt64(" + indexNum + ")";
+                    return " 0 : reader.GetInt64(" + indexNum + ")";
                 case "Byte[]":
-                    return "((byte[])reader[" +indexNum + "])";
+                    return "null : ((byte[])reader[" +indexNum + "])";
                 case "Boolean":
-                    return "reader.GetBoolean(" + indexNum + ")";
+                    return "false : reader.GetBoolean(" + indexNum + ")";
                 case "String":
                 case "IPAddress":
                 case "varchar":
-                    return "reader.GetString(" + indexNum + ")";
+                    return "\"\" : reader.GetString(" + indexNum + ")";
                 case "DateTime":
-                    return "reader.GetDateTime(" + indexNum + ")";
+                    return "null : reader.GetDateTime(" + indexNum + ")";
                 case "Decimal":
                 case "Single":
-                    return "reader.GetFloat(" + indexNum + ")";
+                    return "0.0 : reader.GetFloat(" + indexNum + ")";
                 case "Int32":
-                    return "reader.GetInt32(" + indexNum + ")";
+                    return "0 : reader.GetInt32(" + indexNum + ")";
                 case "Double":
-                    return "reader.GetDouble(" + indexNum + ")";
+                    return "0.0 : reader.GetDouble(" + indexNum + ")";
                 case "Int16":
-                    return "reader.GetInt16(" + indexNum + ")";
+                    return "0 : reader.GetInt16(" + indexNum + ")";
                 case "TimeSpan":
                 case "DateTimeOffset":
-                    return "reader.GetTimeSpan(" + indexNum + ")";
+                    return "null : reader.GetTimeSpan(" + indexNum + ")";
                 case "Byte":
-                    return "reader.GetByte(" + indexNum + ")";
+                    return "null : reader.GetByte(" + indexNum + ")";
                 case "Guid":
-                    return "reader.GetGuid(" + indexNum + ")";
+                    return "null : reader.GetGuid(" + indexNum + ")";
                 default:
                     return null;
             }
