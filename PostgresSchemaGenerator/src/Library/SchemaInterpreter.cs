@@ -13,6 +13,7 @@ namespace PostgresSchemaGenerator.src.Library
         public String modelPrintString;
         public String controllerPrintString;
         public string routesPrintString;
+        public string modelTestString;
         private string sqlConnString = "host=sand5;Username=cbowen;Database=payledger";
 
         public SchemaInterpreter(NpgsqlCommand cmd, String tableName, List<ATShared.SchemaEntry> exclusionList, List<ATShared.SchemaEntry> schemaCols)
@@ -139,104 +140,264 @@ namespace PostgresSchemaGenerator.src.Library
         /// </summary>
         public void createControllerString()
         {
-            #region Using statements
+            string view = this.schemaName + "_" + this.viewName;
+
+            var theString = "using System;\n";
+            theString += "using System.Collections.Generic;\n"
+                + "using System.Data;\n"
+            + "using System.Net;\n"
+            + "using System.Web.Http;\n"
+            + "using System.Web.OData;\n"
+            + "using System.Web.OData.Query;\n"
+            + "using ActionTargetOData.Models;\n"
+            + "using Npgsql;\n"
+            + "using System.Data.Common;\n\n"
+            + "namespace ActionTargetOData.Controllers\n{\n"
+            + "    public class " + view + "Controller : ODataController\n"
+            + "    {\n        private static ODataValidationSettings _validationSettings = new ODataValidationSettings();\n\n"
+
+            + "        // GET: odata/" + view + "s\n"
+            + "        public IHttpActionResult Get" + view + "s(ODataQueryOptions<" + view + "> queryOptions)\n"
+            + "        {\n            using (var connection = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
+            + "            {\n                return Connect(connection, \"SELECT * from "
+            + this.schemaName + "." + this.viewName + "\");\n"
+            + "            }\n        }\n\n"
+            + "        // GET: odata/" + view + "(5)\n"
+            + "        public IHttpActionResult Get" + view + "([FromODataUri] " + this.getType(this.infoSchemaColumns[0].ColumnType)
+            + " key, ODataQueryOptions<" + view + "> queryOptions)\n"
+            + "        {\n            using (var connection = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
+            + "            {\n                return Connect(connection, \"SELECT * from "
+            + this.schemaName + "." + this.viewName + " WHERE " + this.infoSchemaColumns[0].ColumnName + " = \" + key);\n"
+            + "            }\n        }\n\n"
+            + "        public IHttpActionResult Connect(DbConnection connection, string query)\n"
+            + "        {\n            DbConnection conn;\n\n"
+            + "            if (string.IsNullOrWhiteSpace(connection.ConnectionString))\n"
+            + "            {\n                conn = connection;\n            }\n"
+            + "            else {\n                conn = new NpgsqlConnection(connection.ConnectionString);\n            }\n\n"
+
+            + "            // validate the query.\n            try\n            {\n                conn.Open();\n            }\n"
+            + "            catch (Exception ex)\n            {\n                System.Diagnostics.Debug.WriteLine(\"ERROR::\");\n"
+            + "                System.Diagnostics.Debug.Write(ex.Message);\n            }\n\n"
+            + "            // Make sure connection is open\n            if (conn.State == ConnectionState.Closed)\n"
+            + "            {\n                return StatusCode(HttpStatusCode.InternalServerError);\n            }\n\n"
+
+            + "            using (var command = new NpgsqlCommand())\n            {\n"
+            + "                if (string.IsNullOrWhiteSpace(conn.ConnectionString))\n                {\n"
+            + "                    command.Connection = new NpgsqlConnection();\n                }\n"
+            + "                else\n                {\n                    command.Connection = (NpgsqlConnection)conn;\n"
+            + "                }\n\n"
+
+            + "                List<" + view + "> modelList = new List<" + view + ">();\n\n"
+            + "                // Start SQL command\n                command.CommandText = query;\n\n"
+
+            + "                try\n                {\n"
+            + "                    using (var reader = command.ExecuteReader())\n                    {\n"
+            + "                        // Per Row\n                        while (reader.Read())\n"
+            + "                        {\n                            " + view + " temp = new " + view + "(reader);\n"
+
+            + "                            modelList.Add(temp);\n                        }\n"
+            + "                    }\n"
+            + "                }\n                catch (Exception e)\n                {\n"
+
+            + "                    System.Diagnostics.Debug.WriteLine(e.Message);\n"
+
+            + "                    return StatusCode(HttpStatusCode.InternalServerError);\n"
+            + "                }\n\n                var result = Ok<IEnumerable<" + view + ">>(modelList);\n\n"
+            + "                command.Connection.Close();\n                conn.Close();\n\n"
+            + "                return result;\n            }\n        }\n    }\n}";
+
+            this.controllerPrintString = theString;
+
+            /*#region Using statements
 
             controllerPrintString += "using System;\n";
-            controllerPrintString += "using System.Collections.Generic;\n";
-            controllerPrintString += "using System.Data;\n";
-            controllerPrintString += "using System.Linq;\n";
-            controllerPrintString += "using System.Net;\n";
-            controllerPrintString += "using System.Net.Http;\n";
-            controllerPrintString += "using System.Web.Http;\n";
-            controllerPrintString += "using System.Web.ModelBinding;\n";
-            controllerPrintString += "using System.Web.OData;\n";
-            controllerPrintString += "using System.Web.OData.Query;\n";
-            controllerPrintString += "using System.Web.OData.Routing;\n";
-            controllerPrintString += "using ActionTargetOData.Models;\n";
-            controllerPrintString += "using Microsoft.OData.Core;\n";
-            controllerPrintString += "using Npgsql;\n\n";
+                    controllerPrintString += "using System.Collections.Generic;\n";
+                    controllerPrintString += "using System.Data;\n";
+                    controllerPrintString += "using System.Linq;\n";
+                    controllerPrintString += "using System.Net;\n";
+                    controllerPrintString += "using System.Net.Http;\n";
+                    controllerPrintString += "using System.Web.Http;\n";
+                    controllerPrintString += "using System.Web.ModelBinding;\n";
+                    controllerPrintString += "using System.Web.OData;\n";
+                    controllerPrintString += "using System.Web.OData.Query;\n";
+                    controllerPrintString += "using System.Web.OData.Routing;\n";
+                    controllerPrintString += "using ActionTargetOData.Models;\n";
+                    controllerPrintString += "using Microsoft.OData.Core;\n";
+                    controllerPrintString += "using Npgsql;\n\n";
 
-            #endregion Using statements
+                    #endregion Using statements
 
-            controllerPrintString += "namespace ActionTargetOData.Controllers\n{\n";
+                    controllerPrintString += "namespace ActionTargetOData.Controllers\n{\n";
 
-            controllerPrintString += "    public class " + this.schemaName + "_" + this.viewName + "Controller : ODataController\n";
-            controllerPrintString += "    {\n";
+                    controllerPrintString += "    public class " + view + "Controller : ODataController\n";
+                    controllerPrintString += "    {\n";
 
-            controllerPrintString += "        private static ODataValidationSettings _validationSettings = new ODataValidationSettings();\n\n";
+                    controllerPrintString += "        private static ODataValidationSettings _validationSettings = new ODataValidationSettings();\n\n";
 
-            #region GetAllEntries
+                    #region GetAllEntries
 
-            controllerPrintString += "        public IHttpActionResult Get" + this.schemaName + "_" + this.viewName + "s(ODataQueryOptions<"
-                                    + this.schemaName + "_" + this.viewName + "> queryOptions)\n";
-            controllerPrintString += GetEntryString("\"SELECT * FROM " + this.schemaName + "." + this.viewName + "\";");
+                    controllerPrintString += "        public IHttpActionResult Get" + view + "s(ODataQueryOptions<" + view + "> queryOptions)\n";
+                    controllerPrintString += "        {\n            using (var connection = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
+                        + "            {\n                return Connect(connection, \"SELECT * from " + this.schemaName + "." + this.viewName + "\");\n            }\n        }\n\n";
 
-            #endregion GetAllEntries
+                    #endregion GetAllEntries
 
-            #region GetSpecificEntry
+                    #region GetSpecificEntry
 
-            controllerPrintString += "        public IHttpActionResult Get" + this.schemaName + "_" + this.viewName + "([FromODataUri] "
-                        + this.getType(this.infoSchemaColumns[0].ColumnType) + " key, ODataQueryOptions<"
-                        + this.schemaName + "_" + this.viewName + "> queryOptions)\n";
+                    controllerPrintString += "        public IHttpActionResult Get" + view + "([FromODataUri] "
+                                + this.getType(this.infoSchemaColumns[0].ColumnType) + " key, ODataQueryOptions<"
+                                + view + "> queryOptions)\n";
 
-            controllerPrintString += GetEntryString("\"SELECT * FROM " + this.schemaName + "." + this.viewName + " WHERE "
-                                                            + this.infoSchemaColumns[0].ColumnName + " = \" + key;");
+                    controllerPrintString += "        {\n            using (var connection = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
+                        + "            {\n                return Connect(connection, \"SELECT * from " + this.schemaName + "." + this.viewName + " WHERE "
+                                                                    + this.infoSchemaColumns[0].ColumnName + " = \" + key\");\n            }\n        }\n\n";
 
-            #endregion GetSpecificEntry
+                    #endregion GetSpecificEntry
 
-            controllerPrintString += "    }\n}\n"; // end of controller class and namespace
+                    controllerPrintString += "    }\n}\n"; // end of controller class and namespace*/
         }
 
         private string GetEntryString(string command)
         {
+            string view = this.schemaName + "_" + this.viewName;
             string text = "";
 
+            return text;
+        }
+
+        private string GetConnectString(string command)
+        {
+            string view = this.schemaName + "_" + this.viewName;
+            string text = "";
+
+            text += "        public IHttpActionResult Connect(DbConnection connection, string query)\n";
             text += "        {\n";
 
-            text += "            List<" + this.schemaName + "_" + this.viewName + "> modelList = new List<" 
-                + this.schemaName + "_" + this.viewName + ">();\n\n";
+            text += "            List<" + view + "> modelList = new List<" + view + ">();\n\n";
+            text += "            try {\n                conn.Open();\n";
+            text += "            } catch (Exception ex)\n            {\n";
+            text += "                System.Diagnostics.Debug.WriteLine(\"ERROR::\");\n";
+            text += "                System.Diagnostics.Debug.Write(ex.Message);\n            }\n\n";
 
-            text += "            using (var conn = new NpgsqlConnection(\"" + sqlConnString + "\"))\n";
+            text += "            if (conn.State == ConnectionState.Closed)\n";
             text += "            {\n";
-            text += "                try {\n                    conn.Open();\n";
-            text += "                } catch (Exception ex)\n                {\n";
-            text += "                    System.Diagnostics.Debug.WriteLine(\"ERROR::\");\n";
-            text += "                    System.Diagnostics.Debug.Write(ex.Message);\n                }\n\n";
+            text += "                return StatusCode(HttpStatusCode.InternalServerError);\n";
+            text += "            }\n\n";
 
-            text += "                if (conn.State == ConnectionState.Closed)\n";
-            text += "                {\n";
-            text += "                    return StatusCode(HttpStatusCode.InternalServerError);\n";
-            text += "                }\n\n";
+            text += "            using (var cmd = new NpgsqlCommand())\n";
+            text += "            {\n";
+            text += "                cmd.Connection = conn;\n";
+            text += "                cmd.CommandText = " + command + "\n\n";
 
-            text += "                using (var cmd = new NpgsqlCommand())\n";
-            text += "                {\n";
-            text += "                    cmd.Connection = conn;\n";
-            text += "                    cmd.CommandText = " + command + "\n\n";
-
-            text += "                    try {\n";
-            text += "                        using (var reader = cmd.ExecuteReader())\n";
-            text += "                        {\n";
-
-            text += "                            while (reader.Read())\n";
-            text += "                            {\n";
-            text += "                                " + this.schemaName + "_" + this.viewName + " temp = new " + this.schemaName + "_" + this.viewName + "(reader);\n";
-
-            text += "                                modelList.Add(temp);\n";
-            text += "                            }\n";
-            text += "                        }\n";
-            text += "                    } catch (Exception e)\n";
+            text += "                try {\n";
+            text += "                    using (var reader = cmd.ExecuteReader())\n";
             text += "                    {\n";
-            text += "                        System.Diagnostics.Debug.WriteLine(e.Message);\n\n";
-            text += "                        return StatusCode(HttpStatusCode.InternalServerError);\n";
-            text += "                    }\n";
-            text += "                }\n\n";
 
-            text += "                conn.Close();\n";
-            text += "                return Ok<IEnumerable<" + this.schemaName + "_" + this.viewName + ">>(modelList);\n";
-            text += "            }\n";
+            text += "                        while (reader.Read())\n";
+            text += "                        {\n";
+            text += "                            " + view + " temp = new " + view + "(reader);\n";
+
+            text += "                            modelList.Add(temp);\n";
+            text += "                        }\n";
+            text += "                    }\n";
+            text += "                } catch (Exception e)\n";
+            text += "                {\n";
+            text += "                    System.Diagnostics.Debug.WriteLine(e.Message);\n\n";
+            text += "                    return StatusCode(HttpStatusCode.InternalServerError);\n";
+            text += "                }\n";
+            text += "            }\n\n";
+
+            text += "            conn.Close();\n";
+            text += "            return Ok<IEnumerable<" + view + ">>(modelList);\n";
             text += "        }\n\n"; // end of method
 
             return text;
+        }
+
+        public string createTestConstructorString()
+        {
+            string view = this.schemaName + "_" + this.viewName;
+
+            var testConstructorString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+                + "            " + view + " model = new " + view + "(reader.Object);\n\n"
+                + "            Assert.IsNotNull(model);\n";
+
+            for(int i = 0; i < this.infoSchemaColumns.Count; i++)
+            {
+                var col = this.infoSchemaColumns[i];
+
+                testConstructorString += "            Assert.IsNotNull(model." + col.ColumnName + ");\n"
+                    + "            Assert.IsInstanceOfType(model." + col.ColumnName + ", typeof(" + this.getType(col.ColumnType) + "));\n\n";
+            }
+
+            testConstructorString += "        }\n\n";
+
+            return testConstructorString;
+        }
+
+        public string createTestNullString()
+        {
+            string view = this.schemaName + "_" + this.viewName;
+
+            var testNullString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+                + "            " + view + " model = new " + view + "(reader.Object);\n\n"
+                + "            Assert.IsNotNull(model);\n";
+
+            for (int i = 0; i < this.infoSchemaColumns.Count; i++)
+            {
+                var col = this.infoSchemaColumns[i];
+
+                string type = this.getType(col.ColumnType);
+
+                testNullString += "            Assert.IsNotNull(model." + col.ColumnName + ");\n"
+                    + "            Assert.IsInstanceOfType(model." + col.ColumnName + ", typeof(" + type + "));\n"
+                    + "            Assert.AreEqual(" + this.getDefault(type) + ", model." + col.ColumnName + ");\n\n";
+            }
+
+            testNullString += "        }\n\n";
+
+            return testNullString;
+        }
+
+        public string createTestStaticString()
+        {
+            string view = this.schemaName + "_" + this.viewName;
+
+            var testStaticString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+                + "            " + view + " model = new " + view + "(reader.Object);\n\n"
+                + "            Assert.IsNotNull(model);\n";
+
+            for (int i = 0; i < this.infoSchemaColumns.Count; i++)
+            {
+                var col = this.infoSchemaColumns[i];
+
+                string type = this.getType(col.ColumnType);
+
+                testStaticString += "            Assert.IsNotNull(model." + col.ColumnName + ");\n"
+                    + "            Assert.IsInstanceOfType(model." + col.ColumnName + ", typeof(" + type + "));\n"
+                    + "            Assert.AreEqual(" + this.getConstant(type) + ", model." + col.ColumnName + ");\n\n";
+            }
+
+            testStaticString += "        }\n\n";
+
+            return testStaticString;
+        }
+
+        public void createModelTestString()
+        {
+            this.modelTestString = "using System.ComponentModel;\n"
+               + "using System.Collections.Generic;\n"
+               + "using Moq;\n"
+               + "using System.Data.Common;\n\n"
+               + "namespace ODataUnitTests\n{\n    [TestClass]\n"
+               + "    public class " + this.schemaName + "_" + this.viewName + "ModelTests\n    {\n"
+               + createTestConstructorString()
+               + createTestNullString()
+               + createTestStaticString()
+               + "    }\n}\n";
         }
 
         /// <summary>
@@ -259,14 +420,22 @@ namespace PostgresSchemaGenerator.src.Library
             System.IO.File.WriteAllText(fileFolder, this.controllerPrintString);
         }
 
+        public void saveModelTestsToFile(string fileFolder)
+        {
+            fileFolder += this.schemaName + "_" + this.viewName + "ModelTests.cs";
+            System.IO.File.WriteAllText(fileFolder, this.modelTestString);
+        }
+
         /// <summary>
         /// Creates the Routes code based on the created model
         /// </summary>
         public void GetRoutesString()
         {
-            routesPrintString = "            // view-start: " + this.viewName + "\n\n"
-                + "            EntityTypeConfiguration<" + this.schemaName + "_" + this.viewName + "> "
-                + this.schemaName + "_" + this.viewName + "Type = builder.EntityType<" + this.schemaName + "_" + this.viewName + ">();\n";
+            string view = this.schemaName + "_" + this.viewName;
+
+            routesPrintString = "            // view-start: " + view + "\n\n"
+                + "            EntityTypeConfiguration<" + view + "> "
+                + view + "Type = builder.EntityType<" + view + ">();\n";
 
             bool havePrimaryKey = false;
 
@@ -276,18 +445,18 @@ namespace PostgresSchemaGenerator.src.Library
 
                 if (!havePrimaryKey && col.PrimaryKey)
                 {
-                    routesPrintString += "            " + this.schemaName + "_" + this.viewName + "Type.HasKey(a => a." + col.ColumnName + ");\n";
+                    routesPrintString += "            " + view + "Type.HasKey(a => a." + col.ColumnName + ");\n";
 
                     havePrimaryKey = true;
                 }
                 else
                 {
-                    routesPrintString += "            " + this.schemaName + "_" + this.viewName + "Type.Property(a => a." + col.ColumnName + ");\n";
+                    routesPrintString += "            " + view + "Type.Property(a => a." + col.ColumnName + ");\n";
                 }
             }
 
-            routesPrintString += "            builder.EntitySet<" + this.schemaName + "_" + this.viewName + ">(\"" + this.schemaName + "_" + this.viewName + "\");\n\n";
-            routesPrintString += "            // view-end: " + this.viewName + "\n\n";
+            routesPrintString += "            builder.EntitySet<" + view + ">(\"" + view + "\");\n\n";
+            routesPrintString += "            // view-end: " + view + "\n\n";
         }
 
         private String getReader(String typeOf, int indexNum)
@@ -296,35 +465,111 @@ namespace PostgresSchemaGenerator.src.Library
             switch (typeOf)
             {
                 case "Int64":
-                    return " 0 : reader.GetInt64(" + indexNum + ")";
+                    return getDefault(typeOf) + " : reader.GetInt64(" + indexNum + ")";
                 case "Byte[]":
-                    return "null : ((byte[])reader[" +indexNum + "])";
+                    return getDefault(typeOf) + " : ((byte[])reader[" + indexNum + "])";
                 case "Boolean":
-                    return "false : reader.GetBoolean(" + indexNum + ")";
+                    return getDefault(typeOf) + " : reader.GetBoolean(" + indexNum + ")";
                 case "String":
                 case "IPAddress":
                 case "varchar":
-                    return "\"\" : reader.GetString(" + indexNum + ")";
+                    return getDefault(typeOf) + " : reader.GetString(" + indexNum + ")";
                 case "DateTime":
-                    return "null : reader.GetDateTime(" + indexNum + ")";
+                    return getDefault(typeOf) + " : reader.GetDateTime(" + indexNum + ")";
                 case "Decimal":
                 case "Single":
-                    return "0.0 : reader.GetFloat(" + indexNum + ")";
+                    return getDefault(typeOf) + " : reader.GetFloat(" + indexNum + ")";
                 case "Int32":
-                    return "0 : reader.GetInt32(" + indexNum + ")";
+                    return getDefault(typeOf) + " : reader.GetInt32(" + indexNum + ")";
                 case "Double":
-                    return "0.0 : reader.GetDouble(" + indexNum + ")";
+                    return getDefault(typeOf) + " : reader.GetDouble(" + indexNum + ")";
                 case "Int16":
-                    return "0 : reader.GetInt16(" + indexNum + ")";
+                    return getDefault(typeOf) + " : reader.GetInt16(" + indexNum + ")";
                 case "TimeSpan":
                 case "DateTimeOffset":
-                    return "null : reader.GetTimeSpan(" + indexNum + ")";
+                    return getDefault(typeOf) + " : reader.GetTimeSpan(" + indexNum + ")";
                 case "Byte":
-                    return "null : reader.GetByte(" + indexNum + ")";
+                    return getDefault(typeOf) + " : reader.GetByte(" + indexNum + ")";
                 case "Guid":
-                    return "null : reader.GetGuid(" + indexNum + ")";
+                    return getDefault(typeOf) + " : reader.GetGuid(" + indexNum + ")";
                 default:
                     return null;
+            }
+        }
+
+        private string getDefault(string typeOf)
+        {
+            // Determine what command to read.
+            switch (typeOf)
+            {
+                case "Int64":
+                    return "0";
+                case "Byte[]":
+                    return "null";
+                case "Boolean":
+                    return "false";
+                case "String":
+                case "IPAddress":
+                case "varchar":
+                    return "\"\"";
+                case "DateTime":
+                    return "null";
+                case "Decimal":
+                case "Single":
+                    return "0.0";
+                case "Int32":
+                    return "0";
+                case "Double":
+                    return "0.0";
+                case "Int16":
+                    return "0";
+                case "TimeSpan":
+                case "DateTimeOffset":
+                    return "null";
+                case "Byte":
+                    return "null";
+                case "Guid":
+                    return "null";
+                default:
+                    return "";
+            }
+        }
+
+        private string getConstant(string typeOf)
+        {
+            // Determine what command to read.
+            switch (typeOf)
+            {
+                case "Int64":
+                    return "1234";
+                case "Byte[]":
+                    return "(long)839275";
+                case "Boolean":
+                    return "true";
+                case "String":
+                case "IPAddress":
+                case "varchar":
+                    return "\"String Placeholder\"";
+                case "DateTime":
+                    return "DateTime.Now";
+                case "Decimal":
+                case "Single":
+                    return "(float)298473.76";
+                case "Int32":
+                    return "83726";
+                case "Double":
+                    return "37284.98";
+                case "Int16":
+                    return "(short)234";
+                case "TimeSpan":
+                case "DateTimeOffset":
+                    return "DateTime.Now";
+                case "Byte":
+                    return "0";
+                case "Guid":
+                    return "new Guid()";
+                default:
+                    return "";
             }
         }
     }

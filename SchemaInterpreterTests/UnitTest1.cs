@@ -160,7 +160,7 @@ namespace SchemaInterpreterTests
 
             mockInterpreter.createControllerString();
 
-            var printString = "using System;\nusing System.Collections.Generic;\nusing System.Data;\n"
+            /*var printString = "using System;\nusing System.Collections.Generic;\nusing System.Data;\n"
                 + "using System.Linq;\nusing System.Net;\nusing System.Net.Http;\nusing System.Web.Http;\n"
                 + "using System.Web.ModelBinding;\nusing System.Web.OData;\nusing System.Web.OData.Query;\n"
                 + "using System.Web.OData.Routing;\nusing ActionTargetOData.Models;\nusing Microsoft.OData.Core;\nusing Npgsql;\n\n"
@@ -204,11 +204,45 @@ namespace SchemaInterpreterTests
                 + "                    {\n                        System.Diagnostics.Debug.WriteLine(e.Message);\n\n"
                 + "                        return StatusCode(HttpStatusCode.InternalServerError);\n                    }\n"
                 + "                }\n\n                conn.Close();\n                return Ok<IEnumerable<public_mat_work>>(modelList);\n"
-                + "            }\n        }\n\n    }\n}\n";
+                + "            }\n        }\n\n    }\n}\n";*/
+
+            var printString = "using System;\nusing System.Collections.Generic;\nusing System.Data;\nusing System.Net;\n"
+                + "using System.Web.Http;\nusing System.Web.OData;\nusing System.Web.OData.Query;\nusing ActionTargetOData.Models;\n"
+                + "using Npgsql;\nusing System.Data.Common;\n\nnamespace ActionTargetOData.Controllers\n{\n"
+                + "    public class public_mat_workController : ODataController\n    {\n"
+                + "        private static ODataValidationSettings _validationSettings = new ODataValidationSettings();\n\n"
+                + "        // GET: odata/public_mat_works\n        public IHttpActionResult Getpublic_mat_works(ODataQueryOptions<public_mat_work> queryOptions)\n"
+                + "        {\n            using (var connection = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
+                + "            {\n                return Connect(connection, \"SELECT * from public.mat_work\");\n            }\n        }\n\n"
+                + "        // GET: odata/public_mat_work(5)\n        public IHttpActionResult Getpublic_mat_work([FromODataUri] String key, ODataQueryOptions<public_mat_work> queryOptions)\n"
+                + "        {\n            using (var connection = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
+                + "            {\n                return Connect(connection, \"SELECT * from public.mat_work WHERE oper = \" + key);\n            }\n        }\n\n"
+                + "        public IHttpActionResult Connect(DbConnection connection, string query)\n        {\n            DbConnection conn;\n\n"
+                + "            if (string.IsNullOrWhiteSpace(connection.ConnectionString))\n            {\n                conn = connection;\n            }\n"
+                + "            else {\n                conn = new NpgsqlConnection(connection.ConnectionString);\n            }\n\n"
+                + "            // validate the query.\n            try\n            {\n                conn.Open();\n            }\n"
+                + "            catch (Exception ex)\n            {\n                System.Diagnostics.Debug.WriteLine(\"ERROR::\");\n"
+                + "                System.Diagnostics.Debug.Write(ex.Message);\n            }\n\n"
+                + "            // Make sure connection is open\n            if (conn.State == ConnectionState.Closed)\n            {\n"
+                + "                return StatusCode(HttpStatusCode.InternalServerError);\n            }\n\n"
+                + "            using (var command = new NpgsqlCommand())\n            {\n                if (string.IsNullOrWhiteSpace(conn.ConnectionString))\n"
+                + "                {\n                    command.Connection = new NpgsqlConnection();\n                }\n"
+                + "                else\n                {\n                    command.Connection = (NpgsqlConnection)conn;\n                }\n\n"
+                + "                List<public_mat_work> modelList = new List<public_mat_work>();\n\n"
+                + "                // Start SQL command\n                command.CommandText = query;\n\n"
+                + "                try\n                {\n                    using (var reader = command.ExecuteReader())\n                    {\n"
+                + "                        // Per Row\n                        while (reader.Read())\n                        {\n"
+                + "                            public_mat_work temp = new public_mat_work(reader);\n                            modelList.Add(temp);\n"
+                + "                        }\n                    }\n                }\n                catch (Exception e)\n"
+                + "                {\n                    System.Diagnostics.Debug.WriteLine(e.Message);\n"
+                + "                    return StatusCode(HttpStatusCode.InternalServerError);\n                }\n\n"
+                + "                var result = Ok<IEnumerable<public_mat_work>>(modelList);\n\n                command.Connection.Close();\n"
+                + "                conn.Close();\n\n                return result;\n            }\n        }\n    }\n}";
 
             var nowhiteSpace = Regex.Replace(printString, @"\s+", "");
             var interpreterNoWhiteSpace = Regex.Replace(mockInterpreter.controllerPrintString, @"\s+", "");
 
+            Assert.AreEqual(printString, mockInterpreter.controllerPrintString);
             Assert.AreEqual(nowhiteSpace, interpreterNoWhiteSpace);
         }
 
@@ -224,16 +258,152 @@ namespace SchemaInterpreterTests
 
             mockInterpreter.GetRoutesString();
 
-            var printString = "            // view-start: mat_work\n\n"
+            var printString = "            // view-start: public_mat_work\n\n"
                 + "            EntityTypeConfiguration<public_mat_work> public_mat_workType = builder.EntityType<public_mat_work>();\n"
                 + "            public_mat_workType.HasKey(a => a.oper);\n"
                 + "            public_mat_workType.Property(a => a.seq);\n"
                 + "            public_mat_workType.Property(a => a.display);\n"
                 + "            public_mat_workType.Property(a => a.descr);\n"
                 + "            builder.EntitySet<public_mat_work>(\"public_mat_work\");\n\n"
-                + "            // view-end: mat_work\n\n";
+                + "            // view-end: public_mat_work\n\n";
 
             Assert.AreEqual(printString, mockInterpreter.routesPrintString);
+        }
+
+        [TestMethod]
+        public void CreateTestModelConstructorTest()
+        {
+            List<ATShared.SchemaEntry> includedList = GetIncluded();
+            List<ATShared.SchemaEntry> excludedList = GetExcluded();
+            var cmd = new NpgsqlCommand();
+
+            SchemaInterpreter mockInterpreter = new SchemaInterpreter(cmd, "mat_work", excludedList, includedList);
+
+            string actualString = mockInterpreter.createTestConstructorString();
+
+            string printString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+                + "            public_mat_work model = new public_mat_work(reader.Object);\n\n"
+                + "            Assert.IsNotNull(model);\n            Assert.IsNotNull(model.oper);\n"
+                + "            Assert.IsInstanceOfType(model.oper, typeof(String));\n\n"
+                + "            Assert.IsNotNull(model.seq);\n            Assert.IsInstanceOfType(model.seq, typeof(Int32));\n\n"
+                + "            Assert.IsNotNull(model.display);\n            Assert.IsInstanceOfType(model.display, typeof(String));\n\n"
+                + "            Assert.IsNotNull(model.descr);\n            Assert.IsInstanceOfType(model.descr, typeof(String));\n\n"
+                + "        }\n\n";
+
+            Assert.AreEqual(printString, actualString);
+        }
+
+        [TestMethod]
+        public void CreateTestModelNullTest()
+        {
+            List<ATShared.SchemaEntry> includedList = GetIncluded();
+            List<ATShared.SchemaEntry> excludedList = GetExcluded();
+            var cmd = new NpgsqlCommand();
+
+            SchemaInterpreter mockInterpreter = new SchemaInterpreter(cmd, "mat_work", excludedList, includedList);
+
+            string actualString = mockInterpreter.createTestNullString();
+
+            string printString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+                + "            public_mat_work model = new public_mat_work(reader.Object);\n\n"
+                + "            Assert.IsNotNull(model);\n            Assert.IsNotNull(model.oper);\n"
+                + "            Assert.IsInstanceOfType(model.oper, typeof(String));\n"
+                + "            Assert.AreEqual(\"\", model.oper);\n\n"
+                + "            Assert.IsNotNull(model.seq);\n            Assert.IsInstanceOfType(model.seq, typeof(Int32));\n"
+                + "            Assert.AreEqual(0, model.seq);\n\n"
+                + "            Assert.IsNotNull(model.display);\n            Assert.IsInstanceOfType(model.display, typeof(String));\n"
+                + "            Assert.AreEqual(\"\", model.display);\n\n"
+                + "            Assert.IsNotNull(model.descr);\n            Assert.IsInstanceOfType(model.descr, typeof(String));\n"
+                + "            Assert.AreEqual(\"\", model.descr);\n\n"
+                + "        }\n\n";
+
+            Assert.AreEqual(printString, actualString);
+        }
+
+        [TestMethod]
+        public void CreateTestModelStaticTest()
+        {
+            List<ATShared.SchemaEntry> includedList = GetIncluded();
+            List<ATShared.SchemaEntry> excludedList = GetExcluded();
+            var cmd = new NpgsqlCommand();
+
+            SchemaInterpreter mockInterpreter = new SchemaInterpreter(cmd, "mat_work", excludedList, includedList);
+
+            string actualString = mockInterpreter.createTestStaticString();
+
+            string printString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+                + "            public_mat_work model = new public_mat_work(reader.Object);\n\n"
+                + "            Assert.IsNotNull(model);\n            Assert.IsNotNull(model.oper);\n"
+                + "            Assert.IsInstanceOfType(model.oper, typeof(String));\n"
+                + "            Assert.AreEqual(\"String Placeholder\", model.oper);\n\n"
+                + "            Assert.IsNotNull(model.seq);\n            Assert.IsInstanceOfType(model.seq, typeof(Int32));\n"
+                + "            Assert.AreEqual(83726, model.seq);\n\n"
+                + "            Assert.IsNotNull(model.display);\n            Assert.IsInstanceOfType(model.display, typeof(String));\n"
+                + "            Assert.AreEqual(\"String Placeholder\", model.display);\n\n"
+                + "            Assert.IsNotNull(model.descr);\n            Assert.IsInstanceOfType(model.descr, typeof(String));\n"
+                + "            Assert.AreEqual(\"String Placeholder\", model.descr);\n\n"
+                + "        }\n\n";
+
+            Assert.AreEqual(printString, actualString);
+        }
+
+        [TestMethod]
+        public void CreateModelTestClassTest()
+        {
+            List<ATShared.SchemaEntry> includedList = GetIncluded();
+            List<ATShared.SchemaEntry> excludedList = GetExcluded();
+            var cmd = new NpgsqlCommand();
+
+            SchemaInterpreter mockInterpreter = new SchemaInterpreter(cmd, "mat_work", excludedList, includedList);
+
+            mockInterpreter.createModelTestString();
+
+            string printString = "using System.ComponentModel;\n"
+                + "using System.Collections.Generic;\n"
+                + "using Moq;\n"
+                + "using System.Data.Common;\n\n"
+                + "namespace ODataUnitTests\n{\n    [TestClass]\n"
+                + "    public class public_mat_workModelTests\n    {\n"
+                + "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+                + "            public_mat_work model = new public_mat_work(reader.Object);\n\n"
+                + "            Assert.IsNotNull(model);\n            Assert.IsNotNull(model.oper);\n"
+                + "            Assert.IsInstanceOfType(model.oper, typeof(String));\n\n"
+                + "            Assert.IsNotNull(model.seq);\n            Assert.IsInstanceOfType(model.seq, typeof(Int32));\n\n"
+                + "            Assert.IsNotNull(model.display);\n            Assert.IsInstanceOfType(model.display, typeof(String));\n\n"
+                + "            Assert.IsNotNull(model.descr);\n            Assert.IsInstanceOfType(model.descr, typeof(String));\n\n"
+                + "        }\n\n"
+                + "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+                + "            public_mat_work model = new public_mat_work(reader.Object);\n\n"
+                + "            Assert.IsNotNull(model);\n            Assert.IsNotNull(model.oper);\n"
+                + "            Assert.IsInstanceOfType(model.oper, typeof(String));\n"
+                + "            Assert.AreEqual(\"\", model.oper);\n\n"
+                + "            Assert.IsNotNull(model.seq);\n            Assert.IsInstanceOfType(model.seq, typeof(Int32));\n"
+                + "            Assert.AreEqual(0, model.seq);\n\n"
+                + "            Assert.IsNotNull(model.display);\n            Assert.IsInstanceOfType(model.display, typeof(String));\n"
+                + "            Assert.AreEqual(\"\", model.display);\n\n"
+                + "            Assert.IsNotNull(model.descr);\n            Assert.IsInstanceOfType(model.descr, typeof(String));\n"
+                + "            Assert.AreEqual(\"\", model.descr);\n\n"
+                + "        }\n\n"
+                + "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+                + "            public_mat_work model = new public_mat_work(reader.Object);\n\n"
+                + "            Assert.IsNotNull(model);\n            Assert.IsNotNull(model.oper);\n"
+                + "            Assert.IsInstanceOfType(model.oper, typeof(String));\n"
+                + "            Assert.AreEqual(\"String Placeholder\", model.oper);\n\n"
+                + "            Assert.IsNotNull(model.seq);\n            Assert.IsInstanceOfType(model.seq, typeof(Int32));\n"
+                + "            Assert.AreEqual(83726, model.seq);\n\n"
+                + "            Assert.IsNotNull(model.display);\n            Assert.IsInstanceOfType(model.display, typeof(String));\n"
+                + "            Assert.AreEqual(\"String Placeholder\", model.display);\n\n"
+                + "            Assert.IsNotNull(model.descr);\n            Assert.IsInstanceOfType(model.descr, typeof(String));\n"
+                + "            Assert.AreEqual(\"String Placeholder\", model.descr);\n\n"
+                + "        }\n\n    }\n}\n";
+
+            Assert.AreEqual(printString, mockInterpreter.modelTestString);
         }
     }
 }
