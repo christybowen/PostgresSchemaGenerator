@@ -21,8 +21,9 @@ namespace PostgresSchemaGenerator
             ConnectionStringSettingsCollection settings = ConfigurationManager.ConnectionStrings;
             string hostName = settings["sqlHost"].ConnectionString;
             string dbName = settings["sqlDb"].ConnectionString;
+            string userName = settings["sqlUser"].ConnectionString;
                 
-            using (var conn = new NpgsqlConnection("host=" + hostName + ";Username=" + "cbowen" + ";Database=" + dbName))
+            using (var conn = new NpgsqlConnection("host=" + hostName + ";Username=" + userName + ";Database=" + dbName))
             {
                 Console.WriteLine("Connecting to database");
 

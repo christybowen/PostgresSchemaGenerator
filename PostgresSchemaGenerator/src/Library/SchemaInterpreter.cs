@@ -152,21 +152,25 @@ namespace PostgresSchemaGenerator.src.Library
             + "using System.Web.OData.Query;\n"
             + "using ActionTargetOData.Models;\n"
             + "using Npgsql;\n"
-            + "using System.Data.Common;\n\n"
+            + "using System.Data.Common;\n"
+            + "using System.Configuration;\n\n"
             + "namespace ActionTargetOData.Controllers\n{\n"
             + "    public class " + view + "sController : ODataController\n"
-            + "    {\n        private static ODataValidationSettings _validationSettings = new ODataValidationSettings();\n\n"
-
+            + "    {\n        private static ODataValidationSettings _validationSettings = new ODataValidationSettings();\n"
+            + "        private static ConnectionStringSettingsCollection settings = ConfigurationManager.ConnectionStrings;\n"
+            + "        string hostName = settings[\"sqlHost\"].ConnectionString;\n"
+            + "        string dbName = settings[\"sqlDb\"].ConnectionString;\n"
+            + "        string userName = settings[\"sqlUser\"].ConnectionString;\n\n"
             + "        // GET: odata/" + view + "s\n"
             + "        public IHttpActionResult Get" + view + "s(ODataQueryOptions<" + view + "> queryOptions)\n"
-            + "        {\n            using (var connection = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
+            + "        {\n            using (var connection = new NpgsqlConnection(\"host=\" + hostName + \";Username=\" + userName + \";Database=\" + dbName))\n"
             + "            {\n                return Connect(connection, \"SELECT * from "
             + this.schemaName + "." + this.viewName + "\");\n"
             + "            }\n        }\n\n"
             + "        // GET: odata/" + view + "(5)\n"
             + "        public IHttpActionResult Get" + view + "([FromODataUri] " + this.getType(this.infoSchemaColumns[0].ColumnType)
             + " key, ODataQueryOptions<" + view + "> queryOptions)\n"
-            + "        {\n            using (var connection = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
+            + "        {\n            using (var connection = new NpgsqlConnection(\"host=\" + hostName + \";Username=\" + userName + \";Database=\" + dbName))\n"
             + "            {\n                return Connect(connection, \"SELECT * from "
             + this.schemaName + "." + this.viewName + " WHERE " + this.infoSchemaColumns[0].ColumnName + " = '\" + key + \"'\");\n"
             + "            }\n        }\n\n"
@@ -256,63 +260,6 @@ namespace PostgresSchemaGenerator.src.Library
                     #endregion GetSpecificEntry
 
                     controllerPrintString += "    }\n}\n"; // end of controller class and namespace*/
-        }
-
-        private string GetEntryString(string command)
-        {
-            string view = this.schemaName + "_" + this.viewName;
-            string text = "";
-
-            return text;
-        }
-
-        private string GetConnectString(string command)
-        {
-            string view = this.schemaName + "_" + this.viewName;
-            string text = "";
-
-            text += "        public IHttpActionResult Connect(DbConnection connection, string query)\n";
-            text += "        {\n";
-
-            text += "            List<" + view + "> modelList = new List<" + view + ">();\n\n";
-            text += "            try {\n                conn.Open();\n";
-            text += "            } catch (Exception ex)\n            {\n";
-            text += "                System.Diagnostics.Debug.WriteLine(\"ERROR::\");\n";
-            text += "                System.Diagnostics.Debug.Write(ex.Message);\n            }\n\n";
-
-            text += "            if (conn.State == ConnectionState.Closed)\n";
-            text += "            {\n";
-            text += "                return StatusCode(HttpStatusCode.InternalServerError);\n";
-            text += "            }\n\n";
-
-            text += "            using (var cmd = new NpgsqlCommand())\n";
-            text += "            {\n";
-            text += "                cmd.Connection = conn;\n";
-            text += "                cmd.CommandText = " + command + "\n\n";
-
-            text += "                try {\n";
-            text += "                    using (var reader = cmd.ExecuteReader())\n";
-            text += "                    {\n";
-
-            text += "                        while (reader.Read())\n";
-            text += "                        {\n";
-            text += "                            " + view + " temp = new " + view + "(reader);\n";
-
-            text += "                            modelList.Add(temp);\n";
-            text += "                        }\n";
-            text += "                    }\n";
-            text += "                } catch (Exception e)\n";
-            text += "                {\n";
-            text += "                    System.Diagnostics.Debug.WriteLine(e.Message);\n\n";
-            text += "                    return StatusCode(HttpStatusCode.InternalServerError);\n";
-            text += "                }\n";
-            text += "            }\n\n";
-
-            text += "            conn.Close();\n";
-            text += "            return Ok<IEnumerable<" + view + ">>(modelList);\n";
-            text += "        }\n\n"; // end of method
-
-            return text;
         }
 
         public string createModelTestConstructorString()
@@ -447,7 +394,7 @@ namespace PostgresSchemaGenerator.src.Library
                + "            var options = new System.Web.OData.Query.ODataQueryOptions<ActionTargetOData.Models." + view + ">(context, request);\n"
                + "            controller.Request = request;\n"
                + "            controller.ControllerContext.Configuration = new HttpConfiguration();\n\n"
-               + "            var results = controller.Get" + view + "(5377, options);\n\n"
+               + "            var results = controller.Get" + view + "(" + getConstant(this.getType(this.infoSchemaColumns[0].ColumnType)) + ", options);\n\n"
                + "            var total = await results.ExecuteAsync(new System.Threading.CancellationToken());\n\n"
                + "            Assert.AreEqual(System.Net.HttpStatusCode.OK, total.StatusCode);\n"
                + "            Assert.IsNotNull(total.Content);\n        }\n\n"
@@ -474,7 +421,7 @@ namespace PostgresSchemaGenerator.src.Library
                + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/" + view + "s\");\n\n"
                + "            controller.ControllerContext.Configuration = new HttpConfiguration();\n"
                + "            controller.Request = request;\n\n"
-               + "            NpgsqlConnection conn = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\");\n\n"
+               + "            NpgsqlConnection conn = new NpgsqlConnection(\"host=\" + MockReader.hostName + \";Username=\" + MockReader.userName + \";Database=\" + MockReader.dbName);\n\n"
                + "            var results = controller.Connect(conn, \"SELECT * from " + this.schemaName + "." + this.viewName + "\");\n\n"
                + "            var total = await results.ExecuteAsync(new System.Threading.CancellationToken());\n\n"
                + "            Assert.AreEqual(System.Net.HttpStatusCode.OK, total.StatusCode);\n"
