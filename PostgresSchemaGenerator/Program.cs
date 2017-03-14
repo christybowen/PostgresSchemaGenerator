@@ -50,10 +50,12 @@ namespace PostgresSchemaGenerator
                         schema.createModelString();
                         schema.createControllerString();
                         schema.createModelTestString();
+                        schema.CreateControllerTestString();
                         schema.GetRoutesString();
                         schema.saveModelToFile("C:\\Users\\chris\\Desktop\\");
                         schema.saveControllerToFile("C:\\Users\\chris\\Desktop\\");
                         schema.saveModelTestsToFile("C:\\Users\\chris\\Desktop\\");
+                        schema.saveControllerTestsToFile("C:\\Users\\chris\\Desktop\\");
                         SaveRoutesToFile("C:\\Users\\chris\\Desktop\\WebApiConfig.cs", schema.routesPrintString);
                     }
 

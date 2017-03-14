@@ -14,6 +14,7 @@ namespace PostgresSchemaGenerator.src.Library
         public String controllerPrintString;
         public string routesPrintString;
         public string modelTestString;
+        public string controllerTestString;
         private string sqlConnString = "host=sand5;Username=cbowen;Database=payledger";
 
         public SchemaInterpreter(NpgsqlCommand cmd, String tableName, List<ATShared.SchemaEntry> exclusionList, List<ATShared.SchemaEntry> schemaCols)
@@ -314,7 +315,7 @@ namespace PostgresSchemaGenerator.src.Library
             return text;
         }
 
-        public string createTestConstructorString()
+        public string createModelTestConstructorString()
         {
             string view = this.schemaName + "_" + this.viewName;
 
@@ -336,7 +337,7 @@ namespace PostgresSchemaGenerator.src.Library
             return testConstructorString;
         }
 
-        public string createTestNullString()
+        public string createModelTestNullString()
         {
             string view = this.schemaName + "_" + this.viewName;
 
@@ -361,7 +362,7 @@ namespace PostgresSchemaGenerator.src.Library
             return testNullString;
         }
 
-        public string createTestStaticString()
+        public string createModelTestStaticString()
         {
             string view = this.schemaName + "_" + this.viewName;
 
@@ -394,10 +395,93 @@ namespace PostgresSchemaGenerator.src.Library
                + "using System.Data.Common;\n\n"
                + "namespace ODataUnitTests\n{\n    [TestClass]\n"
                + "    public class " + this.schemaName + "_" + this.viewName + "ModelTests\n    {\n"
-               + createTestConstructorString()
-               + createTestNullString()
-               + createTestStaticString()
+               + createModelTestConstructorString()
+               + createModelTestNullString()
+               + createModelTestStaticString()
                + "    }\n}\n";
+        }
+
+        public void CreateControllerTestString()
+        {
+            var view = this.schemaName + "_" + this.viewName;
+
+            var expected = "using System.Web.Http;\n"
+               + "using Microsoft.VisualStudio.TestTools.UnitTesting;\n"
+               + "using ActionTargetOData.Controllers;\n"
+               + "using Npgsql;\nusing Moq;\n"
+               + "using System.Data.Common;\n"
+               + "using System.Threading.Tasks;\n"
+               + "using System.Net.Http;\n"
+               + "using System.Web.OData;\n"
+               + "using System.Web.OData.Builder;\n"
+               + "using ActionTargetOData.Models;\n\n"
+               + "namespace ODataUnitTests\n{\n"
+               + "    /// <summary>\n    /// Summary description for " + view + "ControllerTests\n"
+               + "    /// </summary>\n    [TestClass]\n"
+               + "    public class " + view + "ControllerTests\n    {\n"
+               + "        public " + view + "ControllerTests()\n        {\n"
+               + "            controller = new " + view + "Controller();\n        }\n\n"
+               + "        private " + view + "Controller controller;\n\n"
+               + "        [TestMethod]\n"
+               + "        public async Task TestGet" + view + "s()\n        {\n"
+               + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/" + view + "s\");\n"
+               + "            var builder = new ODataConventionModelBuilder();\n"
+               + "            builder.EntitySet<" + view + ">(\"" + view + "s\");\n"
+               + "            var model = builder.GetEdmModel();\n"
+               + "            var path = new System.Web.OData.Routing.ODataPath();\n"
+               + "            var context = new ODataQueryContext(model, typeof(" + view + "), path);\n"
+               + "            var options = new System.Web.OData.Query.ODataQueryOptions<ActionTargetOData.Models." + view + ">(context, request);\n"
+               + "            controller.Request = request;\n"
+               + "            controller.ControllerContext.Configuration = new HttpConfiguration();\n\n"
+               + "            var results = controller.Get" + view + "s(options);\n\n"
+               + "            var total = await results.ExecuteAsync(new System.Threading.CancellationToken());\n\n"
+               + "            Assert.AreEqual(System.Net.HttpStatusCode.OK, total.StatusCode);\n"
+               + "            Assert.IsNotNull(total.Content);\n        }\n\n"
+               + "        [TestMethod]\n"
+               + "        public async Task TestGetSpecific" + view + "()\n        {\n"
+               + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/" + view + "s\");\n"
+               + "            var builder = new ODataConventionModelBuilder();\n"
+               + "            builder.EntitySet<" + view + ">(\"" + view + "s\");\n"
+               + "            var model = builder.GetEdmModel();\n"
+               + "            var path = new System.Web.OData.Routing.ODataPath();\n"
+               + "            var context = new ODataQueryContext(model, typeof(" + view + "), path);\n"
+               + "            var options = new System.Web.OData.Query.ODataQueryOptions<ActionTargetOData.Models." + view + ">(context, request);\n"
+               + "            controller.Request = request;\n"
+               + "            controller.ControllerContext.Configuration = new HttpConfiguration();\n\n"
+               + "            var results = controller.Get" + view + "(5377, options);\n\n"
+               + "            var total = await results.ExecuteAsync(new System.Threading.CancellationToken());\n\n"
+               + "            Assert.AreEqual(System.Net.HttpStatusCode.OK, total.StatusCode);\n"
+               + "            Assert.IsNotNull(total.Content);\n        }\n\n"
+               + "        [TestMethod]\n"
+               + "        public async Task TestConnectionClosed()\n        {"
+               + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/" + view + "s\");\n\n"
+               + "            controller.Request = request;\n\n"
+               + "            Mock<DbConnection> conn = new Mock<DbConnection>();\n\n"
+               + "            conn.Setup(c => c.Open()).Callback(() => conn.Setup(co => co.State).Returns(System.Data.ConnectionState.Closed));\n\n"
+               + "            var results = controller.Connect(conn.Object, \"SELECT * from " + this.schemaName + "." + this.viewName + "\");\n\n"
+               + "            var total = await results.ExecuteAsync(new System.Threading.CancellationToken());\n\n"
+               + "            Assert.AreEqual(System.Net.HttpStatusCode.InternalServerError, total.StatusCode);\n        }\n\n"
+               + "        [TestMethod]\n"
+               + "        public async Task TestConnectionOpenBadReader()\n        {\n"
+               + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/" + view + "s\");\n\n"
+               + "            controller.Request = request;\n\n"
+               + "            Mock<DbConnection> conn = new Mock<DbConnection>();\n\n"
+               + "            conn.Setup(c => c.Open()).Callback(() => conn.Setup(co => co.State).Returns(System.Data.ConnectionState.Open));\n\n"
+               + "            var results = controller.Connect(conn.Object, \"SELECT * from " + this.schemaName + "." + this.viewName + "\");\n\n"
+               + "            var total = await results.ExecuteAsync(new System.Threading.CancellationToken());\n\n"
+               + "            Assert.AreEqual(System.Net.HttpStatusCode.InternalServerError, total.StatusCode);\n        }\n\n"
+               + "        [TestMethod]\n"
+               + "        public async Task TestConnectSuccess()\n        {\n"
+               + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/" + view + "s\");\n\n"
+               + "            controller.ControllerContext.Configuration = new HttpConfiguration();\n"
+               + "            controller.Request = request;\n\n"
+               + "            NpgsqlConnection conn = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\");\n\n"
+               + "            var results = controller.Connect(conn, \"SELECT * from " + this.schemaName + "." + this.viewName + "\");\n\n"
+               + "            var total = await results.ExecuteAsync(new System.Threading.CancellationToken());\n\n"
+               + "            Assert.AreEqual(System.Net.HttpStatusCode.OK, total.StatusCode);\n"
+               + "            Assert.IsNotNull(total.Content);\n        }\n    }\n}";
+
+            this.controllerTestString = expected;
         }
 
         /// <summary>
@@ -424,6 +508,12 @@ namespace PostgresSchemaGenerator.src.Library
         {
             fileFolder += this.schemaName + "_" + this.viewName + "ModelTests.cs";
             System.IO.File.WriteAllText(fileFolder, this.modelTestString);
+        }
+
+        public void saveControllerTestsToFile(string fileFolder)
+        {
+            fileFolder += this.schemaName + "_" + this.viewName + "ControllerTests.cs";
+            System.IO.File.WriteAllText(fileFolder, this.controllerTestString);
         }
 
         /// <summary>

@@ -279,7 +279,7 @@ namespace SchemaInterpreterTests
 
             SchemaInterpreter mockInterpreter = new SchemaInterpreter(cmd, "mat_work", excludedList, includedList);
 
-            string actualString = mockInterpreter.createTestConstructorString();
+            string actualString = mockInterpreter.createModelTestConstructorString();
 
             string printString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
                 + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
@@ -303,7 +303,7 @@ namespace SchemaInterpreterTests
 
             SchemaInterpreter mockInterpreter = new SchemaInterpreter(cmd, "mat_work", excludedList, includedList);
 
-            string actualString = mockInterpreter.createTestNullString();
+            string actualString = mockInterpreter.createModelTestNullString();
 
             string printString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
                 + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
@@ -331,7 +331,7 @@ namespace SchemaInterpreterTests
 
             SchemaInterpreter mockInterpreter = new SchemaInterpreter(cmd, "mat_work", excludedList, includedList);
 
-            string actualString = mockInterpreter.createTestStaticString();
+            string actualString = mockInterpreter.createModelTestStaticString();
 
             string printString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
                 + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
@@ -404,6 +404,96 @@ namespace SchemaInterpreterTests
                 + "        }\n\n    }\n}\n";
 
             Assert.AreEqual(printString, mockInterpreter.modelTestString);
+        }
+
+        [TestMethod]
+        public void CreateControllerTestClassTest()
+        {
+            List<ATShared.SchemaEntry> includedList = GetIncluded();
+            List<ATShared.SchemaEntry> excludedList = GetExcluded();
+            var cmd = new NpgsqlCommand();
+
+            SchemaInterpreter mockInterpreter = new SchemaInterpreter(cmd, "mat_work", excludedList, includedList);
+
+            mockInterpreter.CreateControllerTestString();
+
+            var expectedString = "using System.Web.Http;\n"
+                + "using Microsoft.VisualStudio.TestTools.UnitTesting;\n"
+                + "using ActionTargetOData.Controllers;\n"
+                + "using Npgsql;\nusing Moq;\n"
+                + "using System.Data.Common;\n"
+                + "using System.Threading.Tasks;\n"
+                + "using System.Net.Http;\n"
+                + "using System.Web.OData;\n"
+                + "using System.Web.OData.Builder;\n"
+                + "using ActionTargetOData.Models;\n\n"
+                + "namespace ODataUnitTests\n{\n"
+                + "    /// <summary>\n    /// Summary description for public_mat_workControllerTests\n"
+                + "    /// </summary>\n    [TestClass]\n"
+                + "    public class public_mat_workControllerTests\n    {\n"
+                + "        public public_mat_workControllerTests()\n        {\n"
+                + "            controller = new public_mat_workController();\n        }\n\n"
+                + "        private public_mat_workController controller;\n\n"
+                + "        [TestMethod]\n"
+                + "        public async Task TestGetpublic_mat_works()\n        {\n"
+                + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/public_mat_works\");\n"
+                + "            var builder = new ODataConventionModelBuilder();\n"
+                + "            builder.EntitySet<public_mat_work>(\"public_mat_works\");\n"
+                + "            var model = builder.GetEdmModel();\n"
+                + "            var path = new System.Web.OData.Routing.ODataPath();\n"
+                + "            var context = new ODataQueryContext(model, typeof(public_mat_work), path);\n"
+                + "            var options = new System.Web.OData.Query.ODataQueryOptions<ActionTargetOData.Models.public_mat_work>(context, request);\n"
+                + "            controller.Request = request;\n"
+                + "            controller.ControllerContext.Configuration = new HttpConfiguration();\n\n"
+                + "            var results = controller.Getpublic_mat_works(options);\n\n"
+                + "            var total = await results.ExecuteAsync(new System.Threading.CancellationToken());\n\n"
+                + "            Assert.AreEqual(System.Net.HttpStatusCode.OK, total.StatusCode);\n"
+                + "            Assert.IsNotNull(total.Content);\n        }\n\n"
+                + "        [TestMethod]\n"
+                + "        public async Task TestGetSpecificpublic_mat_work()\n        {\n"
+                + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/public_mat_works\");\n"
+                + "            var builder = new ODataConventionModelBuilder();\n"
+                + "            builder.EntitySet<public_mat_work>(\"public_mat_works\");\n"
+                + "            var model = builder.GetEdmModel();\n"
+                + "            var path = new System.Web.OData.Routing.ODataPath();\n"
+                + "            var context = new ODataQueryContext(model, typeof(public_mat_work), path);\n"
+                + "            var options = new System.Web.OData.Query.ODataQueryOptions<ActionTargetOData.Models.public_mat_work>(context, request);\n"
+                + "            controller.Request = request;\n"
+                + "            controller.ControllerContext.Configuration = new HttpConfiguration();\n\n"
+                + "            var results = controller.Getpublic_mat_work(5377, options);\n\n"
+                + "            var total = await results.ExecuteAsync(new System.Threading.CancellationToken());\n\n"
+                + "            Assert.AreEqual(System.Net.HttpStatusCode.OK, total.StatusCode);\n"
+                + "            Assert.IsNotNull(total.Content);\n        }\n\n"
+                + "        [TestMethod]\n"
+                + "        public async Task TestConnectionClosed()\n        {"
+                + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/public_mat_works\");\n\n"
+                + "            controller.Request = request;\n\n"
+                + "            Mock<DbConnection> conn = new Mock<DbConnection>();\n\n"
+                + "            conn.Setup(c => c.Open()).Callback(() => conn.Setup(co => co.State).Returns(System.Data.ConnectionState.Closed));\n\n"
+                + "            var results = controller.Connect(conn.Object, \"SELECT * from public.mat_work\");\n\n"
+                + "            var total = await results.ExecuteAsync(new System.Threading.CancellationToken());\n\n"
+                + "            Assert.AreEqual(System.Net.HttpStatusCode.InternalServerError, total.StatusCode);\n        }\n\n"
+                + "        [TestMethod]\n"
+                + "        public async Task TestConnectionOpenBadReader()\n        {\n"
+                + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/public_mat_works\");\n\n"
+                + "            controller.Request = request;\n\n"
+                + "            Mock<DbConnection> conn = new Mock<DbConnection>();\n\n"
+                + "            conn.Setup(c => c.Open()).Callback(() => conn.Setup(co => co.State).Returns(System.Data.ConnectionState.Open));\n\n"
+                + "            var results = controller.Connect(conn.Object, \"SELECT * from public.mat_work\");\n\n"
+                + "            var total = await results.ExecuteAsync(new System.Threading.CancellationToken());\n\n"
+                + "            Assert.AreEqual(System.Net.HttpStatusCode.InternalServerError, total.StatusCode);\n        }\n\n"
+                + "        [TestMethod]\n"
+                + "        public async Task TestConnectSuccess()\n        {\n"
+                + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/public_mat_works\");\n\n"
+                + "            controller.ControllerContext.Configuration = new HttpConfiguration();\n"
+                + "            controller.Request = request;\n\n"
+                + "            NpgsqlConnection conn = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\");\n\n"
+                + "            var results = controller.Connect(conn, \"SELECT * from public.mat_work\");\n\n"
+                + "            var total = await results.ExecuteAsync(new System.Threading.CancellationToken());\n\n"
+                + "            Assert.AreEqual(System.Net.HttpStatusCode.OK, total.StatusCode);\n"
+                + "            Assert.IsNotNull(total.Content);\n        }\n    }\n}";
+
+            Assert.AreEqual(expectedString, mockInterpreter.controllerTestString);
         }
     }
 }
