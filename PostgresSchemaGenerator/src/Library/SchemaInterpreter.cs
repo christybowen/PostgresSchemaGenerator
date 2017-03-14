@@ -59,7 +59,7 @@ namespace PostgresSchemaGenerator.src.Library
 
                 if (!havePrimaryKey && col.PrimaryKey)
                 {
-                    instanceProperties += "        [PrimaryKey, Identity]\n";
+                    instanceProperties += "        [Key, PrimaryKey, Identity]\n";
 
                     havePrimaryKey = true;
                 }
@@ -154,7 +154,7 @@ namespace PostgresSchemaGenerator.src.Library
             + "using Npgsql;\n"
             + "using System.Data.Common;\n\n"
             + "namespace ActionTargetOData.Controllers\n{\n"
-            + "    public class " + view + "Controller : ODataController\n"
+            + "    public class " + view + "sController : ODataController\n"
             + "    {\n        private static ODataValidationSettings _validationSettings = new ODataValidationSettings();\n\n"
 
             + "        // GET: odata/" + view + "s\n"
@@ -168,7 +168,7 @@ namespace PostgresSchemaGenerator.src.Library
             + " key, ODataQueryOptions<" + view + "> queryOptions)\n"
             + "        {\n            using (var connection = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
             + "            {\n                return Connect(connection, \"SELECT * from "
-            + this.schemaName + "." + this.viewName + " WHERE " + this.infoSchemaColumns[0].ColumnName + " = \" + key);\n"
+            + this.schemaName + "." + this.viewName + " WHERE " + this.infoSchemaColumns[0].ColumnName + " = '\" + key + \"'\");\n"
             + "            }\n        }\n\n"
             + "        public IHttpActionResult Connect(DbConnection connection, string query)\n"
             + "        {\n            DbConnection conn;\n\n"
@@ -341,8 +341,8 @@ namespace PostgresSchemaGenerator.src.Library
         {
             string view = this.schemaName + "_" + this.viewName;
 
-            var testNullString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
-                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+            var testNullString = "        [TestMethod]\n        public void TestModelConstructorNull()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderNull();\n"
                 + "            " + view + " model = new " + view + "(reader.Object);\n\n"
                 + "            Assert.IsNotNull(model);\n";
 
@@ -366,8 +366,8 @@ namespace PostgresSchemaGenerator.src.Library
         {
             string view = this.schemaName + "_" + this.viewName;
 
-            var testStaticString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
-                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+            var testStaticString = "        [TestMethod]\n        public void TestModelConstructorStatic()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderStatic();\n"
                 + "            " + view + " model = new " + view + "(reader.Object);\n\n"
                 + "            Assert.IsNotNull(model);\n";
 
@@ -389,10 +389,9 @@ namespace PostgresSchemaGenerator.src.Library
 
         public void createModelTestString()
         {
-            this.modelTestString = "using System.ComponentModel;\n"
-               + "using System.Collections.Generic;\n"
-               + "using Moq;\n"
-               + "using System.Data.Common;\n\n"
+            this.modelTestString = "using Microsoft.VisualStudio.TestTools.UnitTesting;\n"
+               + "using ActionTargetOData.Models;\nusing Moq;\n"
+               + "using System.Data.Common;\nusing System;\n\n"
                + "namespace ODataUnitTests\n{\n    [TestClass]\n"
                + "    public class " + this.schemaName + "_" + this.viewName + "ModelTests\n    {\n"
                + createModelTestConstructorString()
@@ -420,8 +419,8 @@ namespace PostgresSchemaGenerator.src.Library
                + "    /// </summary>\n    [TestClass]\n"
                + "    public class " + view + "ControllerTests\n    {\n"
                + "        public " + view + "ControllerTests()\n        {\n"
-               + "            controller = new " + view + "Controller();\n        }\n\n"
-               + "        private " + view + "Controller controller;\n\n"
+               + "            controller = new " + view + "sController();\n        }\n\n"
+               + "        private " + view + "sController controller;\n\n"
                + "        [TestMethod]\n"
                + "        public async Task TestGet" + view + "s()\n        {\n"
                + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/" + view + "s\");\n"
@@ -453,7 +452,7 @@ namespace PostgresSchemaGenerator.src.Library
                + "            Assert.AreEqual(System.Net.HttpStatusCode.OK, total.StatusCode);\n"
                + "            Assert.IsNotNull(total.Content);\n        }\n\n"
                + "        [TestMethod]\n"
-               + "        public async Task TestConnectionClosed()\n        {"
+               + "        public async Task TestConnectionClosed()\n        {\n"
                + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/" + view + "s\");\n\n"
                + "            controller.Request = request;\n\n"
                + "            Mock<DbConnection> conn = new Mock<DbConnection>();\n\n"
@@ -545,7 +544,7 @@ namespace PostgresSchemaGenerator.src.Library
                 }
             }
 
-            routesPrintString += "            builder.EntitySet<" + view + ">(\"" + view + "\");\n\n";
+            routesPrintString += "            builder.EntitySet<" + view + ">(\"" + view + "s\");\n\n";
             routesPrintString += "            // view-end: " + view + "\n\n";
         }
 

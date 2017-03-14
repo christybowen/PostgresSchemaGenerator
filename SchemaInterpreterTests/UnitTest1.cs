@@ -126,7 +126,7 @@ namespace SchemaInterpreterTests
                             + "        // ignored columns: xmin, tableoid, ctid, oid\n\n"
                             + "        public List<String> primaryKeys = new List<String>() { \"oper\", \"seq\" };\n\n"
                             + "        public String baseQuery = \"SELECT oper, seq, display, descr FROM public.mat_work\";\n\n"
-                            + "        [PrimaryKey, Identity]\n        public String oper { get; set; }\n\n"
+                            + "        [Key, PrimaryKey, Identity]\n        public String oper { get; set; }\n\n"
                             + "        [Column(Name =\"seq\"), NotNull]\n        public Int32? seq { get; set; }\n\n"
                             + "        [Column(Name =\"display\"), NotNull]\n        public String display { get; set; }\n\n"
                             + "        [Column(Name =\"descr\"), NotNull]\n        public String descr { get; set; }\n\n"
@@ -209,14 +209,14 @@ namespace SchemaInterpreterTests
             var printString = "using System;\nusing System.Collections.Generic;\nusing System.Data;\nusing System.Net;\n"
                 + "using System.Web.Http;\nusing System.Web.OData;\nusing System.Web.OData.Query;\nusing ActionTargetOData.Models;\n"
                 + "using Npgsql;\nusing System.Data.Common;\n\nnamespace ActionTargetOData.Controllers\n{\n"
-                + "    public class public_mat_workController : ODataController\n    {\n"
+                + "    public class public_mat_worksController : ODataController\n    {\n"
                 + "        private static ODataValidationSettings _validationSettings = new ODataValidationSettings();\n\n"
                 + "        // GET: odata/public_mat_works\n        public IHttpActionResult Getpublic_mat_works(ODataQueryOptions<public_mat_work> queryOptions)\n"
                 + "        {\n            using (var connection = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
                 + "            {\n                return Connect(connection, \"SELECT * from public.mat_work\");\n            }\n        }\n\n"
                 + "        // GET: odata/public_mat_work(5)\n        public IHttpActionResult Getpublic_mat_work([FromODataUri] String key, ODataQueryOptions<public_mat_work> queryOptions)\n"
                 + "        {\n            using (var connection = new NpgsqlConnection(\"host=sand5;Username=cbowen;Database=payledger\"))\n"
-                + "            {\n                return Connect(connection, \"SELECT * from public.mat_work WHERE oper = \" + key);\n            }\n        }\n\n"
+                + "            {\n                return Connect(connection, \"SELECT * from public.mat_work WHERE oper = '\" + key + \"'\");\n            }\n        }\n\n"
                 + "        public IHttpActionResult Connect(DbConnection connection, string query)\n        {\n            DbConnection conn;\n\n"
                 + "            if (string.IsNullOrWhiteSpace(connection.ConnectionString))\n            {\n                conn = connection;\n            }\n"
                 + "            else {\n                conn = new NpgsqlConnection(connection.ConnectionString);\n            }\n\n"
@@ -264,7 +264,7 @@ namespace SchemaInterpreterTests
                 + "            public_mat_workType.Property(a => a.seq);\n"
                 + "            public_mat_workType.Property(a => a.display);\n"
                 + "            public_mat_workType.Property(a => a.descr);\n"
-                + "            builder.EntitySet<public_mat_work>(\"public_mat_work\");\n\n"
+                + "            builder.EntitySet<public_mat_work>(\"public_mat_works\");\n\n"
                 + "            // view-end: public_mat_work\n\n";
 
             Assert.AreEqual(printString, mockInterpreter.routesPrintString);
@@ -305,8 +305,8 @@ namespace SchemaInterpreterTests
 
             string actualString = mockInterpreter.createModelTestNullString();
 
-            string printString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
-                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+            string printString = "        [TestMethod]\n        public void TestModelConstructorNull()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderNull();\n"
                 + "            public_mat_work model = new public_mat_work(reader.Object);\n\n"
                 + "            Assert.IsNotNull(model);\n            Assert.IsNotNull(model.oper);\n"
                 + "            Assert.IsInstanceOfType(model.oper, typeof(String));\n"
@@ -333,8 +333,8 @@ namespace SchemaInterpreterTests
 
             string actualString = mockInterpreter.createModelTestStaticString();
 
-            string printString = "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
-                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+            string printString = "        [TestMethod]\n        public void TestModelConstructorStatic()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderStatic();\n"
                 + "            public_mat_work model = new public_mat_work(reader.Object);\n\n"
                 + "            Assert.IsNotNull(model);\n            Assert.IsNotNull(model.oper);\n"
                 + "            Assert.IsInstanceOfType(model.oper, typeof(String));\n"
@@ -361,10 +361,9 @@ namespace SchemaInterpreterTests
 
             mockInterpreter.createModelTestString();
 
-            string printString = "using System.ComponentModel;\n"
-                + "using System.Collections.Generic;\n"
-                + "using Moq;\n"
-                + "using System.Data.Common;\n\n"
+            string printString = "using Microsoft.VisualStudio.TestTools.UnitTesting;\n"
+                + "using ActionTargetOData.Models;\nusing Moq;\n"
+                + "using System.Data.Common;\nusing System;\n\n"
                 + "namespace ODataUnitTests\n{\n    [TestClass]\n"
                 + "    public class public_mat_workModelTests\n    {\n"
                 + "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
@@ -376,8 +375,8 @@ namespace SchemaInterpreterTests
                 + "            Assert.IsNotNull(model.display);\n            Assert.IsInstanceOfType(model.display, typeof(String));\n\n"
                 + "            Assert.IsNotNull(model.descr);\n            Assert.IsInstanceOfType(model.descr, typeof(String));\n\n"
                 + "        }\n\n"
-                + "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
-                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+                + "        [TestMethod]\n        public void TestModelConstructorNull()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderNull();\n"
                 + "            public_mat_work model = new public_mat_work(reader.Object);\n\n"
                 + "            Assert.IsNotNull(model);\n            Assert.IsNotNull(model.oper);\n"
                 + "            Assert.IsInstanceOfType(model.oper, typeof(String));\n"
@@ -389,8 +388,8 @@ namespace SchemaInterpreterTests
                 + "            Assert.IsNotNull(model.descr);\n            Assert.IsInstanceOfType(model.descr, typeof(String));\n"
                 + "            Assert.AreEqual(\"\", model.descr);\n\n"
                 + "        }\n\n"
-                + "        [TestMethod]\n        public void TestModelConstructor()\n        {\n"
-                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderRandom();\n"
+                + "        [TestMethod]\n        public void TestModelConstructorStatic()\n        {\n"
+                + "            Mock<DbDataReader> reader = MockReader.CreateMockedReaderStatic();\n"
                 + "            public_mat_work model = new public_mat_work(reader.Object);\n\n"
                 + "            Assert.IsNotNull(model);\n            Assert.IsNotNull(model.oper);\n"
                 + "            Assert.IsInstanceOfType(model.oper, typeof(String));\n"
@@ -432,8 +431,8 @@ namespace SchemaInterpreterTests
                 + "    /// </summary>\n    [TestClass]\n"
                 + "    public class public_mat_workControllerTests\n    {\n"
                 + "        public public_mat_workControllerTests()\n        {\n"
-                + "            controller = new public_mat_workController();\n        }\n\n"
-                + "        private public_mat_workController controller;\n\n"
+                + "            controller = new public_mat_worksController();\n        }\n\n"
+                + "        private public_mat_worksController controller;\n\n"
                 + "        [TestMethod]\n"
                 + "        public async Task TestGetpublic_mat_works()\n        {\n"
                 + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/public_mat_works\");\n"
@@ -465,7 +464,7 @@ namespace SchemaInterpreterTests
                 + "            Assert.AreEqual(System.Net.HttpStatusCode.OK, total.StatusCode);\n"
                 + "            Assert.IsNotNull(total.Content);\n        }\n\n"
                 + "        [TestMethod]\n"
-                + "        public async Task TestConnectionClosed()\n        {"
+                + "        public async Task TestConnectionClosed()\n        {\n"
                 + "            var request = new HttpRequestMessage(HttpMethod.Get, \"http://localhost:64680/odata/public_mat_works\");\n\n"
                 + "            controller.Request = request;\n\n"
                 + "            Mock<DbConnection> conn = new Mock<DbConnection>();\n\n"
